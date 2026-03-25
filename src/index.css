@@ -1,0 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Noto+Sans+JP:wght@300;400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Design tokens ─────────────────────────────────────────────────────── */
+:root {
+  --bg:       #f7f7f5;
+  --surface:  #ffffff;
+  --surface2: #f2f2ef;
+  --border:   #e8e8e4;
+  --text:     #1a1a1a;
+  --text2:    #666660;
+  --text3:    #9a9a94;
+
+  --n5:       #2d7a4f;
+  --n5-bg:    #e8f5ee;
+  --n4:       #1a5fa8;
+  --n4-bg:    #e6f0fb;
+  --n3:       #c4620a;
+  --n3-bg:    #fdeee0;
+
+  --green:    #2d7a4f;
+  --red:      #c0392b;
+}
+
+/* ── Base ──────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body, #root {
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  font-family: 'Noto Sans JP', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ── iOS safe areas ────────────────────────────────────────────────────── */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.safe-top    { padding-top:    env(safe-area-inset-top);    }
+
+/* ── Typography helpers ────────────────────────────────────────────────── */
+.font-jp-serif { font-family: 'Noto Serif JP', serif; }
+
+/* ── Scrollable area ───────────────────────────────────────────────────── */
+.scroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.scroll::-webkit-scrollbar { display: none; }
+
+/* ── Press feedback (active state) ────────────────────────────────────── */
+.press {
+  transition: opacity 0.1s;
+}
+.press:active { opacity: 0.65; }
+
+/* ── Screen slide transitions ──────────────────────────────────────────── */
+.slide-enter {
+  transform: translateX(100%);
+}
+.slide-enter-active {
+  transform: translateX(0);
+  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.slide-exit {
+  transform: translateX(0);
+}
+.slide-exit-active {
+  transform: translateX(100%);
+  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ── Shake animation (wrong answer) ───────────────────────────────────── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-6px); }
+  40%       { transform: translateX(6px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+.shake { animation: shake 0.35s ease; }
+
+/* ── Fade in (list items stagger) ─────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up {
+  animation: fadeUp 0.2s ease both;
+}
