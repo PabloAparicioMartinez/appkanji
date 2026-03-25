@@ -1,7 +1,16 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { Kanji } from './types'
+import type { Kanji, JLPTLevel } from './types'
 import Detail from './Detail'
+import { readingMatchesQuery } from './kanaToRomaji'
+
+const LEVEL_COLORS: Record<JLPTLevel, { color: string; stripe: string }> = {
+  N5: { color: 'var(--n5)', stripe: 'var(--n5)' },
+  N4: { color: 'var(--n4)', stripe: 'var(--n4)' },
+  N3: { color: 'var(--n3)', stripe: 'var(--n3)' },
+  N2: { color: 'var(--n2)', stripe: 'var(--n2)' },
+  N1: { color: 'var(--n1)', stripe: 'var(--n1)' },
+}
 
 interface Props {
   locked: Kanji[]
@@ -11,18 +20,22 @@ interface Props {
 
 export default function AddN3({ locked, onUnlock, onClose }: Props) {
   const [search, setSearch] = useState('')
+  const [level, setLevel] = useState<JLPTLevel | null>(null)
   const [selected, setSelected] = useState<Kanji | null>(null)
   const [justUnlocked, setJustUnlocked] = useState<Set<string>>(new Set())
 
   const q = search.toLowerCase().trim()
   const items = locked.filter(k => {
     if (justUnlocked.has(k.k)) return false
+    if (level !== null && k.level !== level) return false
     if (!q) return true
     return (
       k.k.includes(q) ||
       k.meanings.some(m => m.toLowerCase().includes(q)) ||
       k.on.some(r => r.toLowerCase().includes(q)) ||
-      k.kun.some(r => r.toLowerCase().includes(q))
+      k.kun.some(r => r.toLowerCase().includes(q)) ||
+      k.on.some(r => readingMatchesQuery(r, q)) ||
+      k.kun.some(r => readingMatchesQuery(r, q))
     )
   })
 
@@ -35,59 +48,112 @@ export default function AddN3({ locked, onUnlock, onClose }: Props) {
   return (
     <motion.div
       className="fixed inset-0 z-40 flex flex-col"
-      style={{ background: 'var(--bg)' }}
+      style={{ background: '#F4F4F1' }}
       initial={{ x: '100%' }}
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
-      transition={{ type: 'spring', stiffness: 380, damping: 38 }}
+      transition={{ type: 'tween', duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
+      drag="x"
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={{ left: 0, right: 0.4 }}
+      dragDirectionLock
+      onDragEnd={(_, info) => {
+        if (info.offset.x > 80 || info.velocity.x > 500) onClose()
+      }}
     >
       {/* Nav */}
       <div
-        className="flex items-center gap-3 px-4 py-3 border-b"
-        style={{ background: 'var(--surface)', borderColor: 'var(--border)', paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}
+        className="px-4"
+        style={{
+          background: '#F4F4F1',
+          paddingTop: 'calc(1rem + env(safe-area-inset-top))',
+          paddingBottom: '0.5rem',
+        }}
       >
-        <button onClick={onClose} className="press flex items-center gap-1 text-[15px]" style={{ color: 'var(--n4)' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <motion.button
+          whileTap={{ scale: 0.88 }}
+          onClick={onClose}
+          className="w-9 h-9 rounded-full flex items-center justify-center press"
+          style={{ background: '#e5e5e2' }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ color: 'var(--text)' }}>
             <path d="M15 18l-6-6 6-6"/>
           </svg>
-          Lista
-        </button>
-        <span style={{ fontSize: 17, fontWeight: 500, color: 'var(--text)' }}>Añadir Kanji N3</span>
+        </motion.button>
+        <h1 style={{ fontSize: 30, fontWeight: 700, color: 'var(--text)', lineHeight: '36px', marginTop: 6 }}>Añadir Kanji</h1>
       </div>
 
       {/* Search */}
-      <div className="px-4 py-3 border-b" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+      <div className="px-4 pb-0" style={{ background: '#F4F4F1' }}>
         <div className="relative">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
             className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-            style={{ color: 'var(--text3)' }}>
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            style={{ color: 'var(--text2)' }}>
+            <path d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607z"/>
           </svg>
           <input
-            type="search"
+            type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar kanji N3…"
-            className="w-full rounded-lg text-[15px] outline-none"
+            placeholder="Buscar kanji, significado o lectura…"
+            className="w-full text-[14px] outline-none"
             style={{
-              paddingLeft: 36, paddingRight: 12, paddingTop: 10, paddingBottom: 10,
-              background: 'var(--surface2)', border: '1px solid var(--border)',
+              paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9,
+              background: '#e5e5e2',
+              border: 'none',
+              borderRadius: 10,
               color: 'var(--text)', fontFamily: 'inherit',
             }}
           />
         </div>
       </div>
 
+      {/* Level filters */}
+      <div
+        className="flex gap-2 px-4 py-3"
+        style={{ background: '#F4F4F1', borderBottom: '1px solid var(--border)' }}
+      >
+        {(['N3', 'N2', 'N1'] as const).map(l => {
+          const c = LEVEL_COLORS[l]
+          const active = level === l
+          return (
+            <button
+              key={l}
+              onClick={() => setLevel(active ? null : l)}
+              className="press"
+              style={{
+                padding: '6px 18px',
+                borderRadius: 20,
+                fontSize: 13,
+                fontWeight: 600,
+                letterSpacing: '0.03em',
+                fontFamily: 'inherit',
+                border: `1.5px solid ${c.color}`,
+                background: active ? c.color : '#F4F4F1',
+                color: active ? '#fff' : c.color,
+                cursor: 'pointer',
+                transition: 'background 0.18s ease, color 0.15s ease',
+              }}
+            >
+              {l}
+            </button>
+          )
+        })}
+      </div>
+
       {/* List */}
-      <div className="scroll flex-1">
+      <div
+        className="scroll flex-1"
+        style={{ background: '#F4F4F1', touchAction: 'pan-y' }}
+      >
         {items.length === 0 ? (
           <div className="text-center py-16" style={{ color: 'var(--text3)' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>✓</div>
-            <p style={{ fontSize: 15 }}>¡Has añadido todos los kanji N3 disponibles!</p>
+            <p style={{ fontSize: 15 }}>¡Has añadido todos los kanji N3!</p>
           </div>
         ) : (
-          items.map((k, i) => (
-            <KanjiRow key={k.k} kanji={k} index={i} onClick={() => setSelected(k)} />
+          items.map((k) => (
+            <AddKanjiRow key={k.k} kanji={k} onClick={() => setSelected(k)} />
           ))
         )}
       </div>
@@ -107,30 +173,50 @@ export default function AddN3({ locked, onUnlock, onClose }: Props) {
   )
 }
 
-function KanjiRow({ kanji, index, onClick }: { kanji: Kanji; index: number; onClick: () => void }) {
+// ── AddKanjiRow ────────────────────────────────────────────────────────────
+function AddKanjiRow({ kanji, onClick }: { kanji: Kanji; onClick: () => void }) {
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3 border-b press cursor-pointer fade-up"
-      style={{
-        background: 'var(--surface)',
-        borderColor: 'var(--border)',
-        animationDelay: `${Math.min(index * 0.03, 0.28)}s`,
-      }}
+      className="flex items-center border-b row-press cursor-pointer relative"
+      style={{ background: '#F4F4F1', borderColor: 'var(--border)' }}
       onClick={onClick}
     >
-      <div className="font-jp-serif text-center" style={{ fontSize: 38, lineHeight: 1, minWidth: 48, color: 'var(--text)' }}>
+      {/* Level stripe */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, bottom: 0,
+        width: 6, background: LEVEL_COLORS[kanji.level]?.stripe ?? 'var(--n3)',
+      }} />
+
+      {/* Kanji */}
+      <div className="font-jp-serif text-center flex-shrink-0"
+        style={{ fontSize: 34, lineHeight: 1, width: 64, paddingLeft: 16, color: 'var(--text)' }}>
         {kanji.k}
       </div>
-      <div className="flex-1 min-w-0">
-        <div style={{ fontSize: 15, color: 'var(--text)' }} className="truncate">{kanji.meanings.join(', ')}</div>
-        <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }} className="truncate">
-          {kanji.on.length > 0 && `ON: ${kanji.on.join('・')}`}
-          {kanji.on.length > 0 && kanji.kun.length > 0 && ' · '}
-          {kanji.kun.length > 0 && `KUN: ${kanji.kun.join('・')}`}
+
+      {/* Info */}
+      <div className="flex-1 min-w-0 py-2 pr-3">
+        <div style={{ fontSize: 15, color: 'var(--text)' }} className="truncate">
+          {kanji.meanings.join(', ')}
+        </div>
+        <div className="flex items-center flex-wrap gap-x-3 mt-1" style={{ fontSize: 12, color: 'var(--text3)' }}>
+          {kanji.kun.length > 0 && (
+            <span>
+              <span style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em', marginRight: 3 }}>kun</span>
+              <span style={{ color: 'var(--text2)' }}>{kanji.kun.slice(0, 2).join(', ')}</span>
+            </span>
+          )}
+          {kanji.on.length > 0 && (
+            <span>
+              <span style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em', marginRight: 3 }}>on</span>
+              <span style={{ color: 'var(--text2)' }}>{kanji.on.slice(0, 2).join(', ')}</span>
+            </span>
+          )}
         </div>
       </div>
-      <span style={{ background: 'var(--n3-bg)', color: 'var(--n3)', fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 10 }}>N3</span>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--text3)', flexShrink: 0 }}>
+
+      {/* Chevron */}
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+        style={{ color: 'var(--text3)', flexShrink: 0, marginRight: 14 }}>
         <path d="M9 18l6-6-6-6"/>
       </svg>
     </div>

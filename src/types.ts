@@ -1,4 +1,4 @@
-export type JLPTLevel = 'N5' | 'N4' | 'N3'
+export type JLPTLevel = 'N5' | 'N4' | 'N3' | 'N2' | 'N1'
 
 export interface CompoundWord {
   w: string      // kanji word

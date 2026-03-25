@@ -1,11 +1,11 @@
 {
-  "name": "KanjiMemo",
-  "short_name": "KanjiMemo",
+  "name": "Kanji dev",
+  "short_name": "Kanji dev",
   "description": "Estudia kanji japonés en español",
   "start_url": "/kanjiapp/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "background_color": "#F4F4F1",
+  "theme_color": "#3d9b6e",
   "orientation": "portrait",
   "lang": "es",
   "icons": [

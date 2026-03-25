@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Noto+Sans+JP:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@400;700&family=Noto+Sans+JP:wght@300;400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,22 +6,29 @@
 
 /* ── Design tokens ─────────────────────────────────────────────────────── */
 :root {
-  --bg:       #f7f7f5;
-  --surface:  #ffffff;
-  --surface2: #f2f2ef;
-  --border:   #e8e8e4;
-  --text:     #1a1a1a;
-  --text2:    #666660;
-  --text3:    #9a9a94;
+  --bg:       #F4F4F1;
+  --surface:  #F4F4F1;
+  --surface2: #e8e8e5;
+  --white:    #ffffff;
+  --border:   #d0d0cb;
+  --text:     #1c1c1e;
+  --text2:    #6c6c70;
+  --text3:    #aeaeb2;
 
-  --n5:       #2d7a4f;
-  --n5-bg:    #e8f5ee;
+  --primary:  #3d9b6e;
+
+  --n5:       #3d9b6e;
+  --n5-bg:    #e3f5ec;
   --n4:       #1a5fa8;
   --n4-bg:    #e6f0fb;
   --n3:       #c4620a;
   --n3-bg:    #fdeee0;
+  --n2:       #7c3aed;
+  --n2-bg:    #f0e9ff;
+  --n1:       #b91c1c;
+  --n1-bg:    #fee2e2;
 
-  --green:    #2d7a4f;
+  --green:    #3d9b6e;
   --red:      #c0392b;
 }
 
@@ -35,8 +42,8 @@ html, body, #root {
   height: 100%;
   height: 100dvh;
   overflow: hidden;
-  font-family: 'Noto Sans JP', sans-serif;
-  background: var(--bg);
+  font-family: 'Inter', 'Noto Sans JP', sans-serif;
+  background: #F4F4F1;
   color: var(--text);
 }
 
@@ -60,6 +67,14 @@ html, body, #root {
 }
 .press:active { opacity: 0.65; }
 
+/* ── Row press feedback ────────────────────────────────────────────────── */
+.row-press {
+  transition: background 0.12s;
+}
+.row-press:active {
+  background: var(--surface2) !important;
+}
+
 /* ── Screen slide transitions ──────────────────────────────────────────── */
 .slide-enter {
   transform: translateX(100%);
@@ -76,6 +91,17 @@ html, body, #root {
   transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
+/* ── Search input — neutralize iOS native styling ─────────────────────── */
+input[type="search"],
+input[type="text"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration { display: none; }
+
 /* ── Shake animation (wrong answer) ───────────────────────────────────── */
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
@@ -85,12 +111,3 @@ html, body, #root {
   80%       { transform: translateX(4px); }
 }
 .shake { animation: shake 0.35s ease; }
-
-/* ── Fade in (list items stagger) ─────────────────────────────────────── */
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.fade-up {
-  animation: fadeUp 0.2s ease both;
-}

@@ -340,6 +340,30 @@ const RAW: Kanji[] = [
     words:[{w:'困る',f:'こまる',m:'estar en apuros',l:'N4'},{w:'困難',f:'こんなん',m:'dificultad',l:'N3'},{w:'貧困',f:'ひんこん',m:'pobreza',l:'N3'}]},
   { k:'整', level:'N3', meanings:['ordenar','arreglar'], on:['セイ'], kun:['ととの'],
     words:[{w:'整理',f:'せいり',m:'organización',l:'N3'},{w:'調整',f:'ちょうせい',m:'ajuste',l:'N3'},{w:'整備',f:'せいび',m:'mantenimiento',l:'N3'}]},
+
+  // ── N2 ──────────────────────────────────────────────────────────────────
+  { k:'愛', level:'N2', meanings:['amor','querer'], on:['アイ'], kun:['あい'],
+    words:[{w:'愛情',f:'あいじょう',m:'afecto',l:'N2'},{w:'恋愛',f:'れんあい',m:'romance',l:'N2'},{w:'愛する',f:'あいする',m:'amar',l:'N2'}]},
+  { k:'夢', level:'N2', meanings:['sueño'], on:['ム'], kun:['ゆめ'],
+    words:[{w:'夢中',f:'むちゅう',m:'absorto/obsesionado',l:'N2'},{w:'悪夢',f:'あくむ',m:'pesadilla',l:'N2'},{w:'夢見る',f:'ゆめみる',m:'soñar',l:'N2'}]},
+  { k:'笑', level:'N2', meanings:['reír','sonreír'], on:['ショウ'], kun:['わら','え'],
+    words:[{w:'笑顔',f:'えがお',m:'sonrisa',l:'N2'},{w:'笑い',f:'わらい',m:'risa',l:'N2'},{w:'微笑む',f:'ほほえむ',m:'sonreír suavemente',l:'N2'}]},
+  { k:'悲', level:'N2', meanings:['tristeza','lamentar'], on:['ヒ'], kun:['かなし'],
+    words:[{w:'悲しみ',f:'かなしみ',m:'tristeza',l:'N2'},{w:'悲劇',f:'ひげき',m:'tragedia',l:'N2'},{w:'悲しい',f:'かなしい',m:'triste',l:'N2'}]},
+  { k:'怒', level:'N2', meanings:['enojo','enfadarse'], on:['ド','ヌ'], kun:['おこ','いか'],
+    words:[{w:'怒る',f:'おこる',m:'enfadarse',l:'N2'},{w:'怒り',f:'いかり',m:'ira',l:'N2'},{w:'激怒',f:'げきど',m:'furia',l:'N2'}]},
+
+  // ── N1 ──────────────────────────────────────────────────────────────────
+  { k:'魂', level:'N1', meanings:['alma','espíritu'], on:['コン'], kun:['たましい'],
+    words:[{w:'霊魂',f:'れいこん',m:'espíritu/alma',l:'N1'},{w:'魂胆',f:'こんたん',m:'intención oculta',l:'N1'}]},
+  { k:'誇', level:'N1', meanings:['orgullo','enorgullecerse'], on:['コ'], kun:['ほこ'],
+    words:[{w:'誇り',f:'ほこり',m:'orgullo',l:'N1'},{w:'誇る',f:'ほこる',m:'enorgullecerse',l:'N1'},{w:'誇示',f:'こじ',m:'ostentación',l:'N1'}]},
+  { k:'憂', level:'N1', meanings:['pena','melancolía'], on:['ユウ'], kun:['うれ'],
+    words:[{w:'憂鬱',f:'ゆううつ',m:'melancolía',l:'N1'},{w:'憂い',f:'うれい',m:'tristeza profunda',l:'N1'},{w:'憂慮',f:'ゆうりょ',m:'preocupación',l:'N1'}]},
+  { k:'勇', level:'N1', meanings:['valentía','coraje'], on:['ユウ'], kun:['いさ'],
+    words:[{w:'勇気',f:'ゆうき',m:'valor',l:'N1'},{w:'勇者',f:'ゆうしゃ',m:'héroe valiente',l:'N1'},{w:'勇敢',f:'ゆうかん',m:'valiente',l:'N1'}]},
+  { k:'奥', level:'N1', meanings:['interior','profundidad'], on:['オウ'], kun:['おく'],
+    words:[{w:'奥さん',f:'おくさん',m:'esposa (respetuoso)',l:'N1'},{w:'奥深い',f:'おくふかい',m:'profundo',l:'N1'},{w:'奥底',f:'おくそこ',m:'el fondo más profundo',l:'N1'}]},
 ]
 
 // Deduplicate by kanji character
