@@ -1,8 +1,15 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Kanji, JLPTLevel, SessionItem } from './types'
 
-interface Props { visible: Kanji[] }
+const IOS = { type: 'tween' as const, duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
+
+interface Props {
+  visible: Kanji[]
+  starredKanji: Set<string>
+  starredWords: Set<string>
+}
 
 type Phase = 'setup' | 'session' | 'results'
 type Mode = 'A' | 'B'
@@ -23,7 +30,7 @@ function norm(s: string) {
 }
 
 const MODES = [
-  { id: 'A' as Mode, title: 'Flashcard', subtitle: 'Ve un kanji y escribe su lectura y significado', icon: '漢' },
+  { id: 'A' as Mode, title: 'Kanjis solos', subtitle: 'Ve un kanji y escribe su lectura y significado', icon: '漢' },
   { id: 'B' as Mode, title: 'Palabras compuestas', subtitle: 'Ve una palabra y escribe su furigana y significado', icon: '熟語' },
 ]
 
@@ -37,13 +44,14 @@ const LEVEL_COLORS: Record<JLPTLevel, string> = {
   N1: 'var(--n1)',
 }
 
-export default function Practice({ visible }: Props) {
+export default function Practice({ visible, starredKanji, starredWords }: Props) {
   const [phase, setPhase] = useState<Phase>('setup')
 
   // Setup state
-  const [mode,   setMode]   = useState<Mode>('A')
-  const [levels, setLevels] = useState<Set<JLPTLevel>>(new Set())
-  const [count,  setCount]  = useState(20)
+  const [mode,        setMode]        = useState<Mode>('A')
+  const [levels,      setLevels]      = useState<Set<JLPTLevel>>(new Set())
+  const [count,       setCount]       = useState(20)
+  const [onlySpecial, setOnlySpecial] = useState(false)
 
   // Session state
   const [session,   setSession]   = useState<SessionItem[]>([])
@@ -58,7 +66,23 @@ export default function Practice({ visible }: Props) {
   const meanRef = useRef<HTMLInputElement>(null)
   const furiRef = useRef<HTMLInputElement>(null)
 
-  const pool = visible.filter(k => levels.has(k.level))
+  const basePool = levels.size > 0 ? visible.filter(k => levels.has(k.level)) : visible
+  const pool = onlySpecial ? basePool.filter(k => starredKanji.has(k.k)) : basePool
+
+  useEffect(() => {
+    if (pool.length > 0 && count > pool.length) setCount(pool.length)
+  }, [pool.length])
+
+  function handleFilterChange(special: boolean) {
+    setOnlySpecial(special)
+    const base = levels.size > 0 ? visible.filter(k => levels.has(k.level)) : visible
+    if (!special) {
+      setCount(Math.max(1, Math.ceil(base.length / 4)))
+    } else {
+      const importantPool = base.filter(k => starredKanji.has(k.k))
+      setCount(Math.max(1, importantPool.length))
+    }
+  }
 
   function toggleLevel(l: JLPTLevel) {
     setLevels(prev => {
@@ -75,7 +99,9 @@ export default function Practice({ visible }: Props) {
       items = shuffle(pool).slice(0, count).map(k => ({ type: 'A', kanji: k }))
     } else {
       const words: SessionItem[] = []
-      pool.forEach(k => k.words.forEach(w => words.push({ type: 'B', word: w, kanji: k })))
+      pool.forEach(k => k.words
+        .filter(w => !onlySpecial || starredWords.has(w.w))
+        .forEach(w => words.push({ type: 'B', word: w, kanji: k })))
       items = shuffle(words).slice(0, count)
     }
     setSession(items)
@@ -143,345 +169,396 @@ export default function Practice({ visible }: Props) {
     }
   }
 
-  // ── SETUP ────────────────────────────────────────────────────────────────
-  if (phase === 'setup') return (
-    <div className="flex flex-col h-full" style={{ background: '#F4F4F1' }}>
-      {/* Header */}
-      <div
-        className="px-4"
-        style={{
-          background: '#F4F4F1',
-          paddingTop: 'calc(1rem + env(safe-area-inset-top))',
-          paddingBottom: '0.5rem',
-        }}
-      >
-        <h1 style={{ fontSize: 30, fontWeight: 700, color: 'var(--text)', lineHeight: '36px' }}>Practicar</h1>
-      </div>
-
-      <div className="scroll flex-1 px-4 py-6" style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-
-        {/* Mode */}
-        <div>
-          <SectionLabel>Modo</SectionLabel>
-          <div className="flex gap-3">
-            {MODES.map(m => {
-              const active = mode === m.id
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => setMode(m.id)}
-                  className="flex-1 press"
-                  style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    gap: 8, padding: '16px 12px',
-                    borderRadius: 16,
-                    background: active ? '#e5e5e2' : 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    fontFamily: 'inherit', cursor: 'pointer',
-                  }}
-                >
-                  <div
-                    className="font-jp-serif flex items-center justify-center"
-                    style={{
-                      width: 44, height: 44, borderRadius: 10, flexShrink: 0,
-                      background: active ? '#c8c8c4' : 'var(--surface2)',
-                      color: active ? 'var(--text)' : 'var(--text2)',
-                      fontSize: m.icon.length === 1 ? 22 : 15,
-                      letterSpacing: '-0.02em',
-                    }}
-                  >
-                    {m.icon}
-                  </div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', textAlign: 'center', lineHeight: 1.3 }}>
-                    {m.title}
-                  </span>
-                  <span style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', lineHeight: 1.3 }}>
-                    {m.subtitle}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Level — toggleable chips full width */}
-        <div>
-          <SectionLabel>Nivel</SectionLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
-            {ALL_LEVELS.map(l => {
-              const active = levels.has(l)
-              const color = LEVEL_COLORS[l]
-              return (
-                <button
-                  key={l}
-                  onClick={() => toggleLevel(l)}
-                  className="press"
-                  style={{
-                    padding: '8px 0',
-                    borderRadius: 20,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    letterSpacing: '0.03em',
-                    fontFamily: 'inherit',
-                    border: `1.5px solid ${color}`,
-                    background: active ? color : '#F4F4F1',
-                    color: active ? '#fff' : color,
-                    cursor: 'pointer',
-                    transition: 'background 0.18s ease, color 0.15s ease',
-                  }}
-                >
-                  {l}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Count — stepper */}
-        <div>
-          <SectionLabel>Tarjetas por sesión</SectionLabel>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setCount(c => Math.max(1, c - 1))}
-              className="press flex items-center justify-center"
-              style={{
-                width: 40, height: 40, borderRadius: 12,
-                background: '#e5e5e2', border: 'none', cursor: 'pointer',
-                fontSize: 20, color: 'var(--text)', fontFamily: 'inherit', flexShrink: 0,
-              }}
-            >
-              −
-            </button>
-            <input
-              type="number"
-              value={count}
-              min={1}
-              onChange={e => {
-                const v = parseInt(e.target.value)
-                if (!isNaN(v) && v >= 1) setCount(v)
-              }}
-              className="text-center outline-none"
-              style={{
-                flex: 1, height: 40, borderRadius: 12,
-                background: '#e5e5e2', border: 'none',
-                fontSize: 17, fontWeight: 600, color: 'var(--text)',
-                fontFamily: 'inherit',
-              }}
-            />
-            <button
-              onClick={() => setCount(c => c + 1)}
-              className="press flex items-center justify-center"
-              style={{
-                width: 40, height: 40, borderRadius: 12,
-                background: '#e5e5e2', border: 'none', cursor: 'pointer',
-                fontSize: 20, color: 'var(--text)', fontFamily: 'inherit', flexShrink: 0,
-              }}
-            >
-              +
-            </button>
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6, textAlign: 'center' }}>
-            {pool.length} kanji disponibles
-          </div>
-        </div>
-
-        <button
-          onClick={startSession}
-          disabled={pool.length === 0}
-          className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold press"
-          style={{ background: '#3a3a3c', fontFamily: 'inherit', opacity: pool.length === 0 ? 0.4 : 1 }}
-        >
-          Empezar
-        </button>
-      </div>
-    </div>
-  )
-
-  // ── RESULTS ──────────────────────────────────────────────────────────────
-  if (phase === 'results') {
-    const pct = Math.round((correct / session.length) * 100)
-    const emoji = pct >= 80 ? '🎉' : pct >= 50 ? '💪' : '📚'
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="flex flex-col items-center justify-center h-full px-8 text-center"
-        style={{ gap: 16, background: '#F4F4F1' }}
-      >
-        <div style={{ fontSize: 64 }}>{emoji}</div>
-        <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text)' }}>
-          {pct >= 80 ? '¡Excelente!' : pct >= 50 ? '¡Buen trabajo!' : '¡Sigue practicando!'}
-        </div>
-        <div style={{ fontSize: 18, color: 'var(--text2)' }}>
-          {correct} de {session.length} correctas ({pct}%)
-        </div>
-        <button
-          onClick={startSession}
-          className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold press"
-          style={{ background: '#3a3a3c', fontFamily: 'inherit', marginTop: 16 }}
-        >
-          Otra sesión
-        </button>
-        <button
-          onClick={() => setPhase('setup')}
-          className="w-full py-4 rounded-2xl text-[16px] press"
-          style={{ background: '#e5e5e2', color: 'var(--text)', border: 'none', fontFamily: 'inherit' }}
-        >
-          Volver
-        </button>
-      </motion.div>
-    )
-  }
-
-  // ── SESSION ──────────────────────────────────────────────────────────────
+  // ── SESSION data ─────────────────────────────────────────────────────────
   const item = session[idx]
-  const progressPct = (idx / session.length) * 100
-  const isA  = item?.type === 'A'
+  const progressPct = session.length > 0 ? (idx / session.length) * 100 : 0
+  const isA = item?.type === 'A'
   const allCorrect = results.length > 0 && results.every(r => r.correct)
-
   const fields = isA
     ? [
-        { ref: onRef,   label: 'Lectura ON',   placeholder: 'ej: ニチ',      result: results[0] },
-        { ref: kunRef,  label: 'Lectura KUN',  placeholder: 'ej: ひ',        result: results[1] },
-        { ref: meanRef, label: 'Significado',  placeholder: 'ej: sol, día',  result: results[2] },
+        { ref: onRef,   label: 'Lectura ON',   placeholder: 'ej: ニチ',     result: results[0] },
+        { ref: kunRef,  label: 'Lectura KUN',  placeholder: 'ej: ひ',       result: results[1] },
+        { ref: meanRef, label: 'Significado',  placeholder: 'ej: sol, día', result: results[2] },
       ]
     : [
-        { ref: furiRef, label: 'Furigana',    placeholder: 'ej: にほんご',   result: results[0] },
-        { ref: meanRef, label: 'Significado', placeholder: 'ej: japonés',    result: results[1] },
+        { ref: furiRef, label: 'Furigana',    placeholder: 'ej: にほんご',  result: results[0] },
+        { ref: meanRef, label: 'Significado', placeholder: 'ej: japonés',   result: results[1] },
       ]
+  const pct = session.length > 0 ? Math.round((correct / session.length) * 100) : 0
+  const emoji = pct >= 80 ? '🎉' : pct >= 50 ? '💪' : '📚'
+  const canStart = onlySpecial ? pool.length > 0 : levels.size > 0 && pool.length > 0
 
   return (
-    <motion.div
-      className="flex flex-col h-full"
-      style={{ background: '#F4F4F1' }}
-      initial={{ x: '100%' }}
-      animate={{ x: 0 }}
-      transition={{ type: 'tween', duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
-    >
-
-      {/* Thin progress bar */}
-      <div style={{ height: 3, background: 'var(--border)', flexShrink: 0 }}>
-        <motion.div
-          style={{ height: '100%', background: 'var(--primary)' }}
-          animate={{ width: `${progressPct}%` }}
-          transition={{ duration: 0.3 }}
-        />
-      </div>
-
-      {/* Nav */}
-      <div
-        className="flex items-center justify-between px-4"
-        style={{
-          paddingTop: 'calc(0.75rem + env(safe-area-inset-top))',
-          paddingBottom: '0.5rem',
-          flexShrink: 0,
-        }}
-      >
-        <motion.button
-          whileTap={{ scale: 0.88 }}
-          onClick={() => setPhase('setup')}
-          className="w-9 h-9 rounded-full flex items-center justify-center press"
-          style={{ background: '#e5e5e2' }}
+    <>
+      {/* ── SETUP ── */}
+      <div className="flex flex-col h-full" style={{ background: '#F4F4F1' }}>
+        <div
+          className="px-4"
+          style={{
+            background: '#F4F4F1',
+            paddingTop: 'calc(1rem + env(safe-area-inset-top))',
+            paddingBottom: '0.5rem',
+          }}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ color: 'var(--text)' }}>
-            <path d="M15 18l-6-6 6-6"/>
-          </svg>
-        </motion.button>
-        <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text3)' }}>
-          {idx + 1} / {session.length}
-        </span>
-      </div>
-
-      {/* Body */}
-      <div className="scroll flex-1 px-4" style={{ display: 'flex', flexDirection: 'column' }}>
-
-        {/* Character */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={idx}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.16 }}
-            className="flex flex-col items-center"
-            style={{ paddingTop: 28, paddingBottom: 28 }}
-          >
-            {isA && item?.kanji ? (
-              <>
-                <div className="font-jp-serif" style={{ fontSize: 112, lineHeight: 1, color: 'var(--text)' }}>
-                  {item.kanji.k}
-                </div>
-                <div style={{ marginTop: 14 }}>
-                  <LevelBadge level={item.kanji.level} />
-                </div>
-              </>
-            ) : item?.word ? (
-              <>
-                <div className="font-jp-serif" style={{ fontSize: 58, lineHeight: 1, color: 'var(--text)' }}>
-                  {item.word.w}
-                </div>
-                <div style={{ marginTop: 14 }}>
-                  <LevelBadge level={item.word.l} />
-                </div>
-              </>
-            ) : null}
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Spacing */}
-        <div style={{ height: 24, flexShrink: 0 }} />
-
-        {/* Input fields */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {fields.map((f, i) => (
-            <FieldInput
-              key={f.label}
-              fieldRef={f.ref}
-              label={f.label}
-              placeholder={f.placeholder}
-              result={f.result}
-              answered={answered}
-              onEnter={() => !answered && checkAnswer()}
-              shakeDelay={i * 0.05}
-            />
-          ))}
+          <h1 style={{ fontSize: 30, fontWeight: 700, color: 'var(--text)', lineHeight: '36px' }}>Practicar</h1>
         </div>
 
-        <div style={{ flex: 1, minHeight: 24 }} />
+        <div className="scroll flex-1 px-4 py-6" style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+
+          {/* Mode */}
+          <div>
+            <SectionLabel>Modo</SectionLabel>
+            <div style={{ display: 'flex', background: '#e5e5e2', borderRadius: 12, padding: 3 }}>
+              {MODES.map(m => {
+                const active = mode === m.id
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => setMode(m.id)}
+                    style={{
+                      flex: 1,
+                      display: 'flex', flexDirection: 'column', alignItems: 'center',
+                      gap: 8, padding: '14px 12px',
+                      borderRadius: 9,
+                      background: active ? '#F4F4F1' : 'transparent',
+                      boxShadow: active ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
+                      border: 'none', fontFamily: 'inherit', cursor: 'pointer',
+                      transition: 'background 0.15s ease',
+                    }}
+                  >
+                    <div
+                      className="font-jp-serif flex items-center justify-center"
+                      style={{
+                        width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+                        background: active ? '#e5e5e2' : 'var(--surface2)',
+                        color: active ? 'var(--text)' : 'var(--text2)',
+                        fontSize: m.icon.length === 1 ? 22 : 15,
+                        letterSpacing: '-0.02em',
+                      }}
+                    >
+                      {m.icon}
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', textAlign: 'center', lineHeight: 1.3 }}>
+                      {m.title}
+                    </span>
+                    <span style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', lineHeight: 1.3 }}>
+                      {m.subtitle}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Level */}
+          <div>
+            <SectionLabel>Nivel</SectionLabel>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+              {ALL_LEVELS.map(l => {
+                const active = levels.has(l)
+                const color = LEVEL_COLORS[l]
+                return (
+                  <button
+                    key={l}
+                    onClick={() => toggleLevel(l)}
+                    style={{
+                      padding: '8px 0',
+                      borderRadius: 20,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      letterSpacing: '0.03em',
+                      fontFamily: 'inherit',
+                      border: `1.5px solid ${color}`,
+                      background: active ? color : '#F4F4F1',
+                      color: active ? '#fff' : color,
+                      cursor: 'pointer',
+                      transition: 'background 0.18s ease, color 0.15s ease',
+                    }}
+                  >
+                    {l}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Filtro */}
+          <div>
+            <SectionLabel>Filtro</SectionLabel>
+            <div style={{ display: 'flex', background: '#e5e5e2', borderRadius: 12, padding: 3 }}>
+              {([
+                { id: false as boolean, title: 'Todos', icon: '全' },
+                { id: true as boolean, title: 'Importantes', icon: '★' },
+              ]).map(f => {
+                const active = onlySpecial === f.id
+                return (
+                  <button
+                    key={String(f.id)}
+                    onClick={() => handleFilterChange(f.id)}
+                    style={{
+                      flex: 1,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      padding: '9px 12px',
+                      borderRadius: 9,
+                      background: active ? '#F4F4F1' : 'transparent',
+                      boxShadow: active ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
+                      border: 'none', fontFamily: 'inherit', cursor: 'pointer',
+                      transition: 'background 0.15s ease',
+                    }}
+                  >
+                    <span className="font-jp-serif" style={{ fontSize: 16, color: active ? 'var(--text)' : 'var(--text2)', lineHeight: 1 }}>{f.icon}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: active ? 'var(--text)' : 'var(--text2)' }}>{f.title}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Count */}
+          <div>
+            <SectionLabel>Tarjetas por sesión</SectionLabel>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setCount(c => Math.max(1, c - 1))}
+                className="press flex items-center justify-center"
+                style={{
+                  width: 44, height: 44, borderRadius: 12,
+                  background: '#e5e5e2', border: 'none', cursor: 'pointer',
+                  fontSize: 20, color: 'var(--text)', fontFamily: 'inherit', flexShrink: 0,
+                }}
+              >
+                −
+              </button>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={count}
+                onFocus={e => e.target.select()}
+                onKeyDown={e => {
+                  if (!/^\d$/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) {
+                    e.preventDefault()
+                  }
+                }}
+                onChange={e => {
+                  const v = parseInt(e.target.value)
+                  if (!isNaN(v) && v >= 1) setCount(Math.min(v, Math.max(1, pool.length)))
+                }}
+                className="text-center outline-none"
+                style={{
+                  flex: 1, minWidth: 90, height: 44, borderRadius: 12,
+                  background: '#e5e5e2', border: 'none',
+                  fontSize: 17, fontWeight: 600, color: 'var(--text)',
+                  fontFamily: 'inherit',
+                }}
+              />
+              <button
+                onClick={() => setCount(c => Math.min(c + 1, Math.max(1, pool.length)))}
+                className="press flex items-center justify-center"
+                style={{
+                  width: 44, height: 44, borderRadius: 12,
+                  background: '#e5e5e2', border: 'none', cursor: 'pointer',
+                  fontSize: 20, color: 'var(--text)', fontFamily: 'inherit', flexShrink: 0,
+                }}
+              >
+                +
+              </button>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6, textAlign: 'center' }}>
+              {pool.length} kanji disponibles
+            </div>
+          </div>
+
+          <motion.button
+            whileTap={{ backgroundColor: '#2a2a2c' }}
+            onClick={startSession}
+            disabled={!canStart}
+            className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold"
+            style={{ background: '#3a3a3c', fontFamily: 'inherit', opacity: canStart ? 1 : 0.4, border: 'none', cursor: 'pointer' }}
+          >
+            Empezar
+          </motion.button>
+        </div>
       </div>
 
-      {/* Footer */}
-      <div
-        className="px-4 py-4"
-        style={{
-          paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))',
-          flexShrink: 0,
-        }}
-      >
-        {!answered ? (
-          <button
-            onClick={checkAnswer}
-            className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold press"
-            style={{ background: '#3a3a3c', fontFamily: 'inherit' }}
-          >
-            Comprobar
-          </button>
-        ) : (
-          <motion.button
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            onClick={nextCard}
-            className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold press"
-            style={{
-              background: allCorrect ? 'var(--green)' : '#3a3a3c',
-              fontFamily: 'inherit',
-            }}
-          >
-            {idx + 1 < session.length ? 'Siguiente' : 'Ver resultados'}
-          </motion.button>
-        )}
-      </div>
-    </motion.div>
+      {/* ── SESSION / RESULTS overlay (portal) ── */}
+      {createPortal(
+        <AnimatePresence>
+          {phase !== 'setup' && (
+            <motion.div
+              className="fixed inset-0 z-50 flex flex-col"
+              style={{ background: '#F4F4F1' }}
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={IOS}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={{ left: 0, right: 0.4 }}
+              dragDirectionLock
+              onDragEnd={(_, info) => {
+                if (info.offset.x > 80 || info.velocity.x > 500) setPhase('setup')
+              }}
+            >
+              {phase === 'results' ? (
+                /* ── RESULTS ── */
+                <motion.div
+                  key="results"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex flex-col items-center justify-center h-full px-8 text-center"
+                  style={{ gap: 16 }}
+                >
+                  <div style={{ fontSize: 64 }}>{emoji}</div>
+                  <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text)' }}>
+                    {pct >= 80 ? '¡Excelente!' : pct >= 50 ? '¡Buen trabajo!' : '¡Sigue practicando!'}
+                  </div>
+                  <div style={{ fontSize: 18, color: 'var(--text2)' }}>
+                    {correct} de {session.length} correctas ({pct}%)
+                  </div>
+                  <button
+                    onClick={startSession}
+                    className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold press"
+                    style={{ background: '#3a3a3c', fontFamily: 'inherit', marginTop: 16 }}
+                  >
+                    Otra sesión
+                  </button>
+                  <button
+                    onClick={() => setPhase('setup')}
+                    className="w-full py-4 rounded-2xl text-[16px] press"
+                    style={{ background: '#e5e5e2', color: 'var(--text)', border: 'none', fontFamily: 'inherit' }}
+                  >
+                    Volver
+                  </button>
+                </motion.div>
+              ) : (
+                /* ── SESSION ── */
+                <>
+                  {/* Thin progress bar */}
+                  <div style={{ height: 3, background: 'var(--border)', flexShrink: 0 }}>
+                    <motion.div
+                      style={{ height: '100%', background: 'var(--primary)' }}
+                      animate={{ width: `${progressPct}%` }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  </div>
+
+                  {/* Nav */}
+                  <div
+                    className="flex items-center justify-between px-4"
+                    style={{
+                      paddingTop: 'calc(0.75rem + env(safe-area-inset-top))',
+                      paddingBottom: '0.5rem',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <motion.button
+                      whileTap={{ scale: 0.88 }}
+                      onClick={() => setPhase('setup')}
+                      className="w-9 h-9 rounded-full flex items-center justify-center press"
+                      style={{ background: '#e5e5e2' }}
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ color: 'var(--text)' }}>
+                        <path d="M15 18l-6-6 6-6"/>
+                      </svg>
+                    </motion.button>
+                    <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text3)' }}>
+                      {idx + 1} / {session.length}
+                    </span>
+                  </div>
+
+                  {/* Body */}
+                  <div className="scroll flex-1 px-4" style={{ display: 'flex', flexDirection: 'column' }}>
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.16 }}
+                        className="flex flex-col items-center"
+                        style={{ paddingTop: 28, paddingBottom: 28 }}
+                      >
+                        {isA && item?.kanji ? (
+                          <>
+                            <div className="font-jp-serif" style={{ fontSize: 112, lineHeight: 1, color: 'var(--text)' }}>
+                              {item.kanji.k}
+                            </div>
+                            <div style={{ marginTop: 14 }}>
+                              <LevelBadge level={item.kanji.level} />
+                            </div>
+                          </>
+                        ) : item?.word ? (
+                          <>
+                            <div className="font-jp-serif" style={{ fontSize: 58, lineHeight: 1, color: 'var(--text)' }}>
+                              {item.word.w}
+                            </div>
+                            <div style={{ marginTop: 14 }}>
+                              <LevelBadge level={item.word.l} />
+                            </div>
+                          </>
+                        ) : null}
+                      </motion.div>
+                    </AnimatePresence>
+
+                    <div style={{ height: 24, flexShrink: 0 }} />
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                      {fields.map((f, i) => (
+                        <FieldInput
+                          key={f.label}
+                          fieldRef={f.ref}
+                          label={f.label}
+                          placeholder={f.placeholder}
+                          result={f.result}
+                          answered={answered}
+                          onEnter={() => !answered && checkAnswer()}
+                          shakeDelay={i * 0.05}
+                        />
+                      ))}
+                    </div>
+
+                    <div style={{ flex: 1, minHeight: 24 }} />
+                  </div>
+
+                  {/* Footer */}
+                  <div
+                    className="px-4 py-4"
+                    style={{
+                      paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {!answered ? (
+                      <button
+                        onClick={checkAnswer}
+                        className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold press"
+                        style={{ background: '#3a3a3c', fontFamily: 'inherit' }}
+                      >
+                        Comprobar
+                      </button>
+                    ) : (
+                      <motion.button
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        onClick={nextCard}
+                        className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold press"
+                        style={{
+                          background: allCorrect ? 'var(--green)' : '#3a3a3c',
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        {idx + 1 < session.length ? 'Siguiente' : 'Ver resultados'}
+                      </motion.button>
+                    )}
+                  </div>
+                </>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+    </>
   )
 }
 

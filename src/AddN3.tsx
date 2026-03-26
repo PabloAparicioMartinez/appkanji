@@ -15,10 +15,13 @@ const LEVEL_COLORS: Record<JLPTLevel, { color: string; stripe: string }> = {
 interface Props {
   locked: Kanji[]
   onUnlock: (char: string) => void
+  onRemove?: (char: string) => void
   onClose: () => void
+  onStarWord?: (w: string) => void
+  isStarredWord?: (w: string) => boolean
 }
 
-export default function AddN3({ locked, onUnlock, onClose }: Props) {
+export default function AddN3({ locked, onUnlock, onRemove, onClose, onStarWord, isStarredWord }: Props) {
   const [search, setSearch] = useState('')
   const [level, setLevel] = useState<JLPTLevel | null>(null)
   const [selected, setSelected] = useState<Kanji | null>(null)
@@ -42,6 +45,16 @@ export default function AddN3({ locked, onUnlock, onClose }: Props) {
   function handleUnlock(char: string) {
     onUnlock(char)
     setJustUnlocked(prev => new Set([...prev, char]))
+    // Don't close — Detail stays open, button changes to ×
+  }
+
+  function handleRemove(char: string) {
+    onRemove?.(char)
+    setJustUnlocked(prev => {
+      const next = new Set(prev)
+      next.delete(char)
+      return next
+    })
     setSelected(null)
   }
 
@@ -110,19 +123,18 @@ export default function AddN3({ locked, onUnlock, onClose }: Props) {
 
       {/* Level filters */}
       <div
-        className="flex gap-2 px-4 py-3"
-        style={{ background: '#F4F4F1', borderBottom: '1px solid var(--border)' }}
+        className="px-4 py-3"
+        style={{ background: '#F4F4F1', borderBottom: '1px solid var(--border)', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}
       >
-        {(['N3', 'N2', 'N1'] as const).map(l => {
+        {(['N5', 'N4', 'N3', 'N2', 'N1'] as const).map(l => {
           const c = LEVEL_COLORS[l]
           const active = level === l
           return (
             <button
               key={l}
               onClick={() => setLevel(active ? null : l)}
-              className="press"
               style={{
-                padding: '6px 18px',
+                padding: '7px 0',
                 borderRadius: 20,
                 fontSize: 13,
                 fontWeight: 600,
@@ -149,12 +161,14 @@ export default function AddN3({ locked, onUnlock, onClose }: Props) {
         {items.length === 0 ? (
           <div className="text-center py-16" style={{ color: 'var(--text3)' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>✓</div>
-            <p style={{ fontSize: 15 }}>¡Has añadido todos los kanji N3!</p>
+            <p style={{ fontSize: 15 }}>¡Todos los kanji están en tu lista!</p>
           </div>
         ) : (
-          items.map((k) => (
-            <AddKanjiRow key={k.k} kanji={k} onClick={() => setSelected(k)} />
-          ))
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {items.map((k) => (
+              <AddKanjiRow key={k.k} kanji={k} onClick={() => setSelected(k)} />
+            ))}
+          </div>
         )}
       </div>
 
@@ -163,9 +177,12 @@ export default function AddN3({ locked, onUnlock, onClose }: Props) {
         {selected && (
           <Detail
             kanji={selected}
-            unlocked={false}
+            unlocked={justUnlocked.has(selected.k)}
             onBack={() => setSelected(null)}
             onUnlock={handleUnlock}
+            onRemove={onRemove ? handleRemove : undefined}
+            onStarWord={onStarWord}
+            isStarredWord={isStarredWord}
           />
         )}
       </AnimatePresence>
@@ -177,8 +194,8 @@ export default function AddN3({ locked, onUnlock, onClose }: Props) {
 function AddKanjiRow({ kanji, onClick }: { kanji: Kanji; onClick: () => void }) {
   return (
     <div
-      className="flex items-center border-b row-press cursor-pointer relative"
-      style={{ background: '#F4F4F1', borderColor: 'var(--border)' }}
+      className="flex items-center row-press cursor-pointer relative"
+      style={{ background: '#F4F4F1' }}
       onClick={onClick}
     >
       {/* Level stripe */}
@@ -202,13 +219,13 @@ function AddKanjiRow({ kanji, onClick }: { kanji: Kanji; onClick: () => void }) 
           {kanji.kun.length > 0 && (
             <span>
               <span style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em', marginRight: 3 }}>kun</span>
-              <span style={{ color: 'var(--text2)' }}>{kanji.kun.slice(0, 2).join(', ')}</span>
+              <span style={{ color: 'var(--text2)' }}>{kanji.kun.slice(0, 2).join('・')}</span>
             </span>
           )}
           {kanji.on.length > 0 && (
             <span>
               <span style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em', marginRight: 3 }}>on</span>
-              <span style={{ color: 'var(--text2)' }}>{kanji.on.slice(0, 2).join(', ')}</span>
+              <span style={{ color: 'var(--text2)' }}>{kanji.on.slice(0, 2).join('・')}</span>
             </span>
           )}
         </div>

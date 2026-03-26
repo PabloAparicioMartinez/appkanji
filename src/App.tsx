@@ -7,15 +7,15 @@ import Practice from './Practice'
 import Splash from './Splash'
 
 // ── Persistent state helpers ──────────────────────────────────────────────
-function loadUnlocked(): Set<string> {
+function loadSet(key: string): Set<string> {
   try {
-    const raw = localStorage.getItem('unlocked_n3')
+    const raw = localStorage.getItem(key)
     return new Set(raw ? JSON.parse(raw) : [])
   } catch { return new Set() }
 }
 
-function saveUnlocked(s: Set<string>) {
-  localStorage.setItem('unlocked_n3', JSON.stringify([...s]))
+function saveSet(key: string, s: Set<string>) {
+  localStorage.setItem(key, JSON.stringify([...s]))
 }
 
 // ── Icons ─────────────────────────────────────────────────────────────────
@@ -46,27 +46,61 @@ function StarIcon({ active }: { active: boolean }) {
 
 // ── App ───────────────────────────────────────────────────────────────────
 export default function App() {
-  const [splashDone, setSplashDone] = useState(false)
-  const [screen,     setScreen]     = useState<AppScreen>('lista')
-  const [unlockedN3, setUnlockedN3] = useState<Set<string>>(loadUnlocked)
+  const [splashDone,    setSplashDone]    = useState(false)
+  const [screen,        setScreen]        = useState<AppScreen>('lista')
+  // N3/N2/N1 explicitly added
+  const [unlockedN3,    setUnlockedN3]    = useState<Set<string>>(() => loadSet('unlocked_n3'))
+  // N5/N4 explicitly removed
+  const [removedBasic,  setRemovedBasic]  = useState<Set<string>>(() => loadSet('removed_basic'))
+  // Starred kanjis and words
+  const [starredKanji,  setStarredKanji]  = useState<Set<string>>(() => loadSet('starred_kanji'))
+  const [starredWords,  setStarredWords]  = useState<Set<string>>(() => loadSet('starred_words'))
+
+  const isUnlocked = useCallback((k: { k: string; level: string }) => {
+    if (k.level === 'N3' || k.level === 'N2' || k.level === 'N1') return unlockedN3.has(k.k)
+    return !removedBasic.has(k.k) // N5/N4 start in list
+  }, [unlockedN3, removedBasic])
 
   const unlockKanji = useCallback((char: string) => {
-    setUnlockedN3(prev => {
+    const k = KANJI.find(x => x.k === char)
+    if (!k) return
+    if (k.level === 'N3' || k.level === 'N2' || k.level === 'N1') {
+      setUnlockedN3(prev => { const next = new Set(prev); next.add(char); saveSet('unlocked_n3', next); return next })
+    } else {
+      setRemovedBasic(prev => { const next = new Set(prev); next.delete(char); saveSet('removed_basic', next); return next })
+    }
+  }, [])
+
+  const removeKanji = useCallback((char: string) => {
+    const k = KANJI.find(x => x.k === char)
+    if (!k) return
+    if (k.level === 'N3' || k.level === 'N2' || k.level === 'N1') {
+      setUnlockedN3(prev => { const next = new Set(prev); next.delete(char); saveSet('unlocked_n3', next); return next })
+    } else {
+      setRemovedBasic(prev => { const next = new Set(prev); next.add(char); saveSet('removed_basic', next); return next })
+    }
+  }, [])
+
+  const starKanji = useCallback((char: string) => {
+    setStarredKanji(prev => {
       const next = new Set(prev)
-      next.add(char)
-      saveUnlocked(next)
+      if (next.has(char)) next.delete(char); else next.add(char)
+      saveSet('starred_kanji', next)
       return next
     })
   }, [])
 
-  const isUnlocked = useCallback((k: { k: string; level: string }) =>
-    k.level === 'N5' || k.level === 'N4' || unlockedN3.has(k.k)
-  , [unlockedN3])
+  const starWord = useCallback((word: string) => {
+    setStarredWords(prev => {
+      const next = new Set(prev)
+      if (next.has(word)) next.delete(word); else next.add(word)
+      saveSet('starred_words', next)
+      return next
+    })
+  }, [])
 
   const visible  = KANJI.filter(isUnlocked)
-  const lockedN3 = KANJI.filter(k =>
-    (k.level === 'N3' || k.level === 'N2' || k.level === 'N1') && !unlockedN3.has(k.k)
-  )
+  const lockedAll = KANJI.filter(k => !isUnlocked(k))
 
   const tabs = [
     { id: 'lista'     as AppScreen, label: 'Lista',     Icon: GridIcon },
@@ -74,7 +108,7 @@ export default function App() {
   ]
 
   return (
-    <div className="flex flex-col" style={{ height: '100dvh', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div className="flex flex-col" style={{ height: 'calc(100dvh + env(safe-area-inset-top))', background: 'var(--bg)', overflow: 'hidden' }}>
       <AnimatePresence>
         {!splashDone && <Splash onDone={() => setSplashDone(true)} />}
       </AnimatePresence>
@@ -86,11 +120,20 @@ export default function App() {
             {screen === 'lista'
               ? <Lista
                   visible={visible}
-                  lockedN3={lockedN3}
-                  isUnlocked={k => k.level === 'N5' || k.level === 'N4' || unlockedN3.has(k.k)}
+                  lockedAll={lockedAll}
+                  isUnlocked={isUnlocked}
                   onUnlock={unlockKanji}
+                  onRemove={removeKanji}
+                  onStar={starKanji}
+                  onStarWord={starWord}
+                  starredKanji={starredKanji}
+                  starredWords={starredWords}
                 />
-              : <Practice visible={visible} />
+              : <Practice
+                  visible={visible}
+                  starredKanji={starredKanji}
+                  starredWords={starredWords}
+                />
             }
           </div>
         </AnimatePresence>
@@ -109,15 +152,14 @@ export default function App() {
           <button
             key={id}
             onClick={() => setScreen(id)}
-            className="flex-1 flex flex-col items-center justify-center gap-1"
+            className="flex-1 flex flex-col items-center justify-center gap-0.5 py-3"
             style={{
-              height: 70,
               color: screen === id ? 'var(--text)' : 'var(--text3)',
               background: 'none', border: 'none', fontFamily: 'inherit', cursor: 'pointer',
             }}
           >
             <Icon active={screen === id} />
-            <span style={{ fontSize: 10, fontWeight: screen === id ? 600 : 400 }}>{label}</span>
+            <span style={{ fontSize: 11 }}>{label}</span>
           </button>
         ))}
       </nav>

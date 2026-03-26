@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
 import type { Kanji, JLPTLevel } from './types'
 import Detail from './Detail'
 import AddN3 from './AddN3'
@@ -7,9 +7,14 @@ import { readingMatchesQuery } from './kanaToRomaji'
 
 interface Props {
   visible: Kanji[]
-  lockedN3: Kanji[]
+  lockedAll: Kanji[]
   isUnlocked: (k: Kanji) => boolean
   onUnlock: (char: string) => void
+  onRemove: (char: string) => void
+  onStar: (char: string) => void
+  onStarWord: (w: string) => void
+  starredKanji: Set<string>
+  starredWords: Set<string>
 }
 
 const LEVEL_COLORS: Record<JLPTLevel, { bg: string; color: string; stripe: string }> = {
@@ -20,14 +25,16 @@ const LEVEL_COLORS: Record<JLPTLevel, { bg: string; color: string; stripe: strin
   N1: { bg: 'var(--n1-bg)', color: 'var(--n1)', stripe: 'var(--n1)' },
 }
 
-export default function Lista({ visible, lockedN3, isUnlocked, onUnlock }: Props) {
+export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemove, onStar, onStarWord, starredKanji, starredWords }: Props) {
   const [search, setSearch] = useState('')
   const [level, setLevel] = useState<JLPTLevel | null>(null)
+  const [onlyStarred, setOnlyStarred] = useState(false)
   const [selected, setSelected] = useState<Kanji | null>(null)
   const [showAddN3, setShowAddN3] = useState(false)
 
   const q = search.toLowerCase().trim()
   const items = visible.filter(k => {
+    if (onlyStarred && !starredKanji.has(k.k)) return false
     if (level !== null && k.level !== level) return false
     if (!q) return true
     return (
@@ -56,17 +63,15 @@ export default function Lista({ visible, lockedN3, isUnlocked, onUnlock }: Props
           <h1 style={{ fontSize: 30, fontWeight: 700, color: 'var(--text)', lineHeight: '36px' }}>Kanjis</h1>
 
           {/* + button */}
-          <motion.button
-            whileTap={{ scale: 0.88 }}
+          <button
             onClick={() => setShowAddN3(true)}
             className="w-9 h-9 rounded-full flex items-center justify-center press"
             style={{ background: '#3a3a3c' }}
-            title="Añadir Kanji N3"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
               <path d="M12 5v14M5 12h14"/>
             </svg>
-          </motion.button>
+          </button>
         </div>
 
         {/* Search */}
@@ -93,11 +98,36 @@ export default function Lista({ visible, lockedN3, isUnlocked, onUnlock }: Props
         </div>
       </div>
 
-      {/* Level filters — toggleable chips with level colors */}
+      {/* Level filters */}
       <div
         className="px-4 py-3"
-        style={{ background: '#F4F4F1', borderBottom: '1px solid var(--border)', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}
+        style={{ background: '#F4F4F1', borderBottom: '1px solid var(--border)', display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}
       >
+        {/* Star filter */}
+        <button
+          onClick={() => setOnlyStarred(v => !v)}
+          style={{
+            padding: '7px 0',
+            borderRadius: 20,
+            fontSize: 13,
+            fontWeight: 600,
+            fontFamily: 'inherit',
+            border: `1.5px solid #3a3a3c`,
+            background: onlyStarred ? '#3a3a3c' : '#F4F4F1',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24"
+            fill={onlyStarred ? 'white' : 'none'}
+            stroke={onlyStarred ? 'none' : 'var(--text)'}
+            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+        </button>
+
         {(['N5', 'N4', 'N3', 'N2', 'N1'] as const).map(l => {
           const c = LEVEL_COLORS[l]
           const active = level === l
@@ -157,7 +187,13 @@ export default function Lista({ visible, lockedN3, isUnlocked, onUnlock }: Props
             kanji={selected}
             unlocked={isUnlocked(selected)}
             onBack={() => setSelected(null)}
-            onUnlock={char => { onUnlock(char) }}
+            onUnlock={onUnlock}
+            onRemove={onRemove}
+            onStar={onStar}
+            onStarWord={onStarWord}
+            isStarred={starredKanji.has(selected.k)}
+            isStarredWord={(w: string) => starredWords.has(w)}
+            isStarredKanji={(k: string) => starredKanji.has(k)}
           />
         )}
       </AnimatePresence>
@@ -166,9 +202,12 @@ export default function Lista({ visible, lockedN3, isUnlocked, onUnlock }: Props
       <AnimatePresence>
         {showAddN3 && (
           <AddN3
-            locked={lockedN3}
-            onUnlock={char => { onUnlock(char) }}
+            locked={lockedAll}
+            onUnlock={onUnlock}
+            onRemove={onRemove}
             onClose={() => setShowAddN3(false)}
+            onStarWord={onStarWord}
+            isStarredWord={(w: string) => starredWords.has(w)}
           />
         )}
       </AnimatePresence>
@@ -199,7 +238,7 @@ function KanjiRow({ kanji, onClick }: { kanji: Kanji; onClick: () => void }) {
       </div>
 
       {/* Info */}
-      <div className="flex-1 min-w-0 py-2 pr-3">
+      <div className="flex-1 min-w-0 py-2 pr-3" style={{ paddingLeft: 10 }}>
         <div style={{ fontSize: 15, color: 'var(--text)' }} className="truncate">
           {kanji.meanings.join(', ')}
         </div>
@@ -207,21 +246,21 @@ function KanjiRow({ kanji, onClick }: { kanji: Kanji; onClick: () => void }) {
           {kanji.kun.length > 0 && (
             <span>
               <span style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em', marginRight: 3 }}>kun</span>
-              <span style={{ color: 'var(--text2)' }}>{kanji.kun.slice(0, 2).join(', ')}</span>
+              <span style={{ color: 'var(--text2)' }}>{kanji.kun.slice(0, 2).join('・')}</span>
             </span>
           )}
           {kanji.on.length > 0 && (
             <span>
               <span style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em', marginRight: 3 }}>on</span>
-              <span style={{ color: 'var(--text2)' }}>{kanji.on.slice(0, 2).join(', ')}</span>
+              <span style={{ color: 'var(--text2)' }}>{kanji.on.slice(0, 2).join('・')}</span>
             </span>
           )}
         </div>
       </div>
 
       {/* Chevron */}
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-        style={{ color: 'var(--text3)', flexShrink: 0, marginRight: 14 }}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+        style={{ color: 'var(--text3)', flexShrink: 0, marginRight: 16 }}>
         <path d="M9 18l6-6-6-6"/>
       </svg>
     </div>
