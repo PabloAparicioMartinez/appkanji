@@ -1,5 +1,5 @@
-const CACHE = 'kanjimemo-v3'
-const ASSETS = ['/kanjiapp/', '/kanjiapp/index.html', '/kanjiapp/manifest.json']
+const CACHE = 'kanjimemo-v4'
+const ASSETS = ['/', '/index.html', '/manifest.json']
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)))
@@ -20,7 +20,7 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE).then(c => c.put(e.request, clone))
         }
         return res
-      }).catch(() => caches.match('/kanjiapp/index.html'))
+      }).catch(() => caches.match('/index.html'))
     )
   )
 })

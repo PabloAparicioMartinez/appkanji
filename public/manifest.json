@@ -2,14 +2,14 @@
   "name": "Kanji dev",
   "short_name": "Kanji dev",
   "description": "Estudia kanji japonés en español",
-  "start_url": "/kanjiapp/",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#F4F4F1",
   "theme_color": "#3d9b6e",
   "orientation": "portrait",
   "lang": "es",
   "icons": [
-    { "src": "/kanjiapp/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/kanjiapp/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
   ]
 }
