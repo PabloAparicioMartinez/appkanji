@@ -24,3 +24,9 @@ export interface SessionItem {
   kanji?: Kanji
   word?: CompoundWord
 }
+
+export interface ItemResult {
+  key: string        // kanji.k for type A, word.w for type B
+  type: 'A' | 'B'
+  correct: boolean
+}

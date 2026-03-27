@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { Kanji, JLPTLevel, SessionItem, PracticeMode } from './types'
+import type { Kanji, JLPTLevel, SessionItem, PracticeMode, ItemResult } from './types'
 import PracticeSession from './PracticeSession'
 
 interface Props {
   visible: Kanji[]
   starredKanji: Set<string>
   starredWords: Set<string>
+  weakKanji: Set<string>
+  weakWords: Set<string>
+  onSessionResult: (results: ItemResult[]) => void
 }
 
 type Mode = PracticeMode
+type FilterType = 'all' | 'important' | 'weak'
 
 const MODES = [
   { id: 'A' as Mode, title: 'Kanjis solos', subtitle: 'Ve un kanji y escribe su lectura y significado', icon: '漢' },
@@ -31,30 +35,45 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-export default function Practice({ visible, starredKanji, starredWords }: Props) {
+export default function Practice({ visible, starredKanji, starredWords, weakKanji, weakWords, onSessionResult }: Props) {
   const [mode,        setMode]        = useState<Mode>('A')
   const [levels,      setLevels]      = useState<Set<JLPTLevel>>(new Set())
   const [count,       setCount]       = useState(20)
-  const [onlySpecial, setOnlySpecial] = useState(false)
+  const [countPreset, setCountPreset] = useState<'all' | '5' | '10' | '20' | 'custom'>('5')
+  const [customInput, setCustomInput] = useState('')
+  const [filter,      setFilter]      = useState<FilterType>('all')
   const [session,     setSession]     = useState<SessionItem[]>([])
   const [showSession, setShowSession] = useState(false)
 
-  const basePool = levels.size > 0 ? visible.filter(k => levels.has(k.level)) : visible
-  const pool = onlySpecial ? basePool.filter(k => starredKanji.has(k.k)) : basePool
+  const basePool = levels.size > 0
+    ? visible.filter(k => levels.has(k.level))
+    : filter === 'all' ? [] : visible
+  const pool = filter === 'important' ? basePool.filter(k => starredKanji.has(k.k))
+             : filter === 'weak'      ? basePool.filter(k => weakKanji.has(k.k))
+             : basePool
+
+  // For mode B + weak: words in weakWords from any level-filtered kanji
+  const weakWordItems: SessionItem[] = filter === 'weak' && mode === 'B'
+    ? basePool.flatMap(k => k.words
+        .filter(w => weakWords.has(w.w))
+        .map(w => ({ type: 'B' as const, word: w, kanji: k })))
+    : []
+
+  const maxPool = filter === 'weak' && mode === 'B'
+    ? weakWordItems.length
+    : pool.length
 
   useEffect(() => {
-    if (pool.length > 0 && count > pool.length) setCount(pool.length)
-  }, [pool.length])
+    if (countPreset === 'all')      setCount(maxPool)
+    else if (countPreset === '5')   setCount(Math.min(5,  maxPool))
+    else if (countPreset === '10')  setCount(Math.min(10, maxPool))
+    else if (countPreset === '20')  setCount(Math.min(20, maxPool))
+    else if (count > maxPool)       setCount(maxPool)
+  }, [maxPool, countPreset])
 
-  function handleFilterChange(special: boolean) {
-    setOnlySpecial(special)
-    const base = levels.size > 0 ? visible.filter(k => levels.has(k.level)) : visible
-    if (!special) {
-      setCount(Math.max(1, Math.ceil(base.length / 4)))
-    } else {
-      const importantPool = base.filter(k => starredKanji.has(k.k))
-      setCount(Math.max(1, importantPool.length))
-    }
+  function handleFilterChange(f: FilterType) {
+    setFilter(f)
+    setCountPreset(f === 'all' ? '20' : 'all')
   }
 
   function toggleLevel(l: JLPTLevel) {
@@ -70,17 +89,22 @@ export default function Practice({ visible, starredKanji, starredWords }: Props)
     if (mode === 'A') {
       items = shuffle(pool).slice(0, count).map(k => ({ type: 'A', kanji: k }))
     } else {
-      const words: SessionItem[] = []
-      pool.forEach(k => k.words
-        .filter(w => !onlySpecial || starredWords.has(w.w))
-        .forEach(w => words.push({ type: 'B', word: w, kanji: k })))
+      const words: SessionItem[] = filter === 'weak'
+        ? weakWordItems
+        : basePool.flatMap(k => k.words
+            .filter(w => filter === 'important' ? starredWords.has(w.w) : true)
+            .map(w => ({ type: 'B' as const, word: w, kanji: k })))
       items = shuffle(words).slice(0, count)
     }
     setSession(items)
     setShowSession(true)
   }
 
-  const canStart = onlySpecial ? pool.length > 0 : levels.size > 0 && pool.length > 0
+  const canStart = filter === 'all'
+    ? levels.size > 0 && pool.length > 0
+    : filter === 'weak' && mode === 'B'
+    ? weakWordItems.length > 0
+    : pool.length > 0
 
   return (
     <>
@@ -146,15 +170,20 @@ export default function Practice({ visible, starredKanji, starredWords }: Props)
 
           {/* Level */}
           <div>
-            <SectionLabel>Nivel</SectionLabel>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+              <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nivel</span>
+              <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 500, visibility: filter !== 'all' ? 'visible' : 'hidden' }}>
+                Todos incluidos
+              </span>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
               {ALL_LEVELS.map(l => {
-                const active = levels.has(l)
+                const active = filter !== 'all' || levels.has(l)
                 const color = LEVEL_COLORS[l]
                 return (
                   <button
                     key={l}
-                    onClick={() => toggleLevel(l)}
+                    onClick={() => filter === 'all' && toggleLevel(l)}
                     style={{
                       padding: '8px 0',
                       borderRadius: 20,
@@ -165,8 +194,9 @@ export default function Practice({ visible, starredKanji, starredWords }: Props)
                       border: `1.5px solid ${color}`,
                       background: active ? color : '#F4F4F1',
                       color: active ? '#fff' : color,
-                      cursor: 'pointer',
-                      transition: 'background 0.18s ease, color 0.15s ease',
+                      cursor: filter === 'all' ? 'pointer' : 'default',
+                      opacity: filter !== 'all' ? 0.55 : 1,
+                      transition: 'background 0.18s ease, color 0.15s ease, opacity 0.18s ease',
                     }}
                   >
                     {l}
@@ -181,18 +211,19 @@ export default function Practice({ visible, starredKanji, starredWords }: Props)
             <SectionLabel>Filtro</SectionLabel>
             <div style={{ display: 'flex', background: '#e5e5e2', borderRadius: 12, padding: 3 }}>
               {([
-                { id: false as boolean, title: 'Todos', icon: '全' },
-                { id: true  as boolean, title: 'Importantes', icon: '★' },
+                { id: 'all'       as FilterType, title: 'Todos',      icon: '全' },
+                { id: 'important' as FilterType, title: 'Importantes', icon: '★' },
+                { id: 'weak'      as FilterType, title: 'Débiles',    icon: '弱' },
               ]).map(f => {
-                const active = onlySpecial === f.id
+                const active = filter === f.id
                 return (
                   <button
-                    key={String(f.id)}
+                    key={f.id}
                     onClick={() => handleFilterChange(f.id)}
                     style={{
                       flex: 1,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      padding: '9px 12px',
+                      padding: '9px 8px',
                       borderRadius: 9,
                       background: active ? '#F4F4F1' : 'transparent',
                       boxShadow: active ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
@@ -201,7 +232,7 @@ export default function Practice({ visible, starredKanji, starredWords }: Props)
                     }}
                   >
                     <span className="font-jp-serif" style={{ fontSize: 16, color: active ? 'var(--text)' : 'var(--text2)', lineHeight: 1 }}>{f.icon}</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: active ? 'var(--text)' : 'var(--text2)' }}>{f.title}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: active ? 'var(--text)' : 'var(--text2)' }}>{f.title}</span>
                   </button>
                 )
               })}
@@ -211,54 +242,68 @@ export default function Practice({ visible, starredKanji, starredWords }: Props)
           {/* Count */}
           <div>
             <SectionLabel>Tarjetas por sesión</SectionLabel>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setCount(c => Math.max(1, c - 1))}
-                className="press flex items-center justify-center"
-                style={{
-                  width: 44, height: 44, borderRadius: 12,
-                  background: '#e5e5e2', border: 'none', cursor: 'pointer',
-                  fontSize: 20, color: 'var(--text)', fontFamily: 'inherit', flexShrink: 0,
-                }}
-              >
-                −
-              </button>
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${filter === 'all' ? 4 : 2}, 1fr)`, gap: 8 }}>
+              {(filter === 'all'
+                ? (['5', '10', '20', 'custom'] as const)
+                : (['all', 'custom'] as const)
+              ).map(p => {
+                const active = countPreset === p
+                const label = p === 'all' ? 'Todos' : p === 'custom' ? '···' : p
+                return (
+                  <button
+                    key={p}
+                    onClick={() => {
+                      setCountPreset(p)
+                      if (p === 'custom') setCustomInput(String(count))
+                    }}
+                    style={{
+                      padding: '10px 0',
+                      borderRadius: 12,
+                      fontSize: p === 'custom' ? 16 : 14,
+                      fontWeight: 600,
+                      fontFamily: 'inherit',
+                      border: 'none',
+                      background: active ? '#3a3a3c' : '#e5e5e2',
+                      color: active ? '#fff' : 'var(--text)',
+                      cursor: 'pointer',
+                      transition: 'background 0.15s ease, color 0.15s ease',
+                    }}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+            {countPreset === 'custom' && (
               <input
                 type="text"
                 inputMode="numeric"
-                value={count}
+                value={customInput}
+                autoFocus
                 onFocus={e => e.target.select()}
                 onKeyDown={e => {
-                  if (!/^\d$/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) {
+                  if (!/^\d$/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key))
                     e.preventDefault()
-                  }
                 }}
                 onChange={e => {
+                  setCustomInput(e.target.value)
                   const v = parseInt(e.target.value)
-                  if (!isNaN(v) && v >= 1) setCount(Math.min(v, Math.max(1, pool.length)))
+                  if (!isNaN(v) && v >= 1) setCount(Math.min(v, maxPool))
                 }}
+                placeholder="Número de tarjetas"
                 className="text-center outline-none"
                 style={{
-                  flex: 1, minWidth: 90, height: 44, borderRadius: 12,
-                  background: '#e5e5e2', border: 'none',
-                  fontSize: 17, fontWeight: 600, color: 'var(--text)',
-                  fontFamily: 'inherit',
+                  width: '100%', marginTop: 8, padding: '11px 14px',
+                  borderRadius: 12, border: 'none',
+                  background: '#e5e5e2',
+                  fontSize: 16, fontWeight: 600, color: 'var(--text)',
+                  fontFamily: 'inherit', boxSizing: 'border-box',
                 }}
               />
-              <button
-                onClick={() => setCount(c => Math.min(c + 1, Math.max(1, pool.length)))}
-                className="press flex items-center justify-center"
-                style={{
-                  width: 44, height: 44, borderRadius: 12,
-                  background: '#e5e5e2', border: 'none', cursor: 'pointer',
-                  fontSize: 20, color: 'var(--text)', fontFamily: 'inherit', flexShrink: 0,
-                }}
-              >
-                +
-              </button>
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6, textAlign: 'center' }}>
-              {pool.length} kanji disponibles
+            )}
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8, textAlign: 'center' }}>
+              {countPreset !== 'all' && <>{count} de </>}
+              {maxPool} {filter === 'weak' && mode === 'B' ? 'palabras' : 'kanji'} disponibles
             </div>
           </div>
 
@@ -282,6 +327,7 @@ export default function Practice({ visible, starredKanji, starredWords }: Props)
             mode={mode}
             onClose={() => setShowSession(false)}
             onRestart={startSession}
+            onSessionResult={onSessionResult}
           />
         )}
       </AnimatePresence>
@@ -291,7 +337,7 @@ export default function Practice({ visible, starredKanji, starredWords }: Props)
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+    <div style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
       {children}
     </div>
   )

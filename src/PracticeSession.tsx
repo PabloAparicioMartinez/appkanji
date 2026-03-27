@@ -1,24 +1,37 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { SessionItem, JLPTLevel, PracticeMode } from './types'
+import type { SessionItem, JLPTLevel, PracticeMode, ItemResult } from './types'
 
 const IOS   = { type: 'tween' as const, duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
 const SHEET = { type: 'tween' as const, duration: 0.24, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
 
-interface FieldResult { autoCorrect: boolean; expected: string }
+interface FieldResult {
+  autoCorrect: boolean
+  expected: string
+  example?: { word: string; furigana: string; meaning: string }
+}
 
 interface Props {
   session: SessionItem[]
   mode: PracticeMode
   onClose: () => void
   onRestart: () => void
+  onSessionResult?: (results: ItemResult[]) => void
 }
 
 function norm(s: string) {
   return s.toLowerCase().replace(/\s/g, '')
 }
 
-export default function PracticeSession({ session, mode, onClose, onRestart }: Props) {
+function toKatakana(s: string) {
+  return s.replace(/[\u3041-\u3096]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60))
+}
+
+function toHiragana(s: string) {
+  return s.replace(/[\u30A1-\u30F6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60))
+}
+
+export default function PracticeSession({ session, mode, onClose, onRestart, onSessionResult }: Props) {
   const [phase,    setPhase]    = useState<'session' | 'results'>('session')
   const [idx,      setIdx]      = useState(0)
   const [correct,  setCorrect]  = useState(0)
@@ -28,10 +41,11 @@ export default function PracticeSession({ session, mode, onClose, onRestart }: P
   const [animating,       setAnimating]       = useState(true)
   const [showStopConfirm, setShowStopConfirm] = useState(false)
 
-  const onRef   = useRef<HTMLInputElement>(null)
-  const kunRef  = useRef<HTMLInputElement>(null)
-  const meanRef = useRef<HTMLInputElement>(null)
-  const furiRef = useRef<HTMLInputElement>(null)
+  const onRef          = useRef<HTMLInputElement>(null)
+  const kunRef         = useRef<HTMLInputElement>(null)
+  const meanRef        = useRef<HTMLInputElement>(null)
+  const furiRef        = useRef<HTMLInputElement>(null)
+  const itemResultsRef = useRef<ItemResult[]>([])
 
   useEffect(() => {
     setIdx(0)
@@ -44,6 +58,7 @@ export default function PracticeSession({ session, mode, onClose, onRestart }: P
     if (kunRef.current)  kunRef.current.value  = ''
     if (meanRef.current) meanRef.current.value = ''
     if (furiRef.current) furiRef.current.value = ''
+    itemResultsRef.current = []
     setTimeout(() => (mode === 'A' ? meanRef : furiRef).current?.focus(), 100)
   }, [session])
 
@@ -61,12 +76,16 @@ export default function PracticeSession({ session, mode, onClose, onRestart }: P
       const meanOk = norm(meanVal).length > 0 && k.meanings.some(m =>
         norm(m).includes(norm(meanVal)) || norm(meanVal).includes(norm(m))
       )
-      const kunOk  = k.kun.length === 0 || k.kun.some(r => norm(r) === norm(kunVal))
-      const onOk   = k.on.length  === 0 || k.on.some(r  => norm(r) === norm(onVal))
+      const kunOk  = k.kun.length === 0 ? norm(kunVal) === '-' : k.kun.some(r => norm(r) === norm(kunVal))
+      const onOk   = k.on.length  === 0 || k.on.some(r  => norm(r) === norm(toKatakana(onVal)))
+
+      const onReadingsHira = k.on.map(r => toHiragana(r).toLowerCase())
+      const onWord = k.words.find(w => onReadingsHira.some(r => w.f.toLowerCase().includes(r))) ?? k.words[0]
+      const onExample = onWord ? { word: onWord.w, furigana: onWord.f, meaning: onWord.m } : undefined
 
       fieldResults.push({ autoCorrect: meanOk, expected: k.meanings.join(', ') })
-      fieldResults.push({ autoCorrect: kunOk,  expected: k.kun.join('、')      || '—' })
-      fieldResults.push({ autoCorrect: onOk,   expected: k.on.join('、')       || '—' })
+      fieldResults.push({ autoCorrect: kunOk,  expected: k.kun.join('、') || '-' })
+      fieldResults.push({ autoCorrect: onOk,   expected: k.on.join('、')  || '—', example: onExample })
 
     } else if (item.type === 'B' && item.word) {
       const w = item.word
@@ -93,7 +112,12 @@ export default function PracticeSession({ session, mode, onClose, onRestart }: P
     const cardCorrect = results.every((r, i) => r.autoCorrect || userEvals[i] === true)
     if (cardCorrect) setCorrect(c => c + 1)
 
+    const item = session[idx]
+    const key = item.type === 'A' ? (item.kanji?.k ?? '') : (item.word?.w ?? '')
+    itemResultsRef.current.push({ key, type: item.type, correct: cardCorrect })
+
     if (idx + 1 >= session.length) {
+      onSessionResult?.(itemResultsRef.current)
       setPhase('results')
     } else {
       setIdx(i => i + 1)
@@ -114,8 +138,6 @@ export default function PracticeSession({ session, mode, onClose, onRestart }: P
 
   const canProceed = answered && results.length > 0 &&
     results.every((r, i) => r.autoCorrect || userEvals[i] !== undefined)
-  const allCorrect = canProceed &&
-    results.every((r, i) => r.autoCorrect || userEvals[i] === true)
 
   const fields = isA
     ? [
@@ -265,31 +287,34 @@ export default function PracticeSession({ session, mode, onClose, onRestart }: P
 
           {/* Footer */}
           <div
-            className="px-4 py-4"
+            className="px-4"
             style={{
-              paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))',
+              paddingTop: '0.5rem',
+              paddingBottom: 'calc(1.1rem + env(safe-area-inset-bottom))',
               flexShrink: 0,
             }}
           >
             {!answered ? (
               <motion.button
+                initial={{ backgroundColor: '#3a3a3c' }}
+                animate={{ backgroundColor: '#3a3a3c' }}
                 whileTap={{ backgroundColor: '#2a2a2c' }}
                 onClick={checkAnswer}
-                className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold press"
-                style={{ background: '#3a3a3c', fontFamily: 'inherit' }}
+                className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold"
+                style={{ fontFamily: 'inherit', border: 'none', cursor: 'pointer' }}
               >
                 Comprobar
               </motion.button>
             ) : (
               <motion.button
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: canProceed ? 1 : 0.35, y: 0 }}
-                whileTap={canProceed ? { backgroundColor: '#2a2a2c' } : undefined}
+                initial={{ opacity: 0, y: 6, backgroundColor: '#3a3a3c' }}
+                animate={{ opacity: canProceed ? 1 : 0.35, y: 0, backgroundColor: '#3a3a3c' }}
+                whileTap={{ backgroundColor: '#2a2a2c' }}
                 onClick={canProceed ? nextCard : undefined}
-                className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold press"
+                className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold"
                 style={{
-                  background: allCorrect ? 'var(--green)' : '#3a3a3c',
                   fontFamily: 'inherit',
+                  border: 'none',
                   cursor: canProceed ? 'pointer' : 'default',
                 }}
               >
@@ -388,21 +413,15 @@ function FieldInput({
   const needsSelfEval = answered && result && !result.autoCorrect
   const isResolved    = needsSelfEval && userEval !== undefined
 
-  const borderColor = !answered
-    ? 'var(--border)'
-    : (result?.autoCorrect || userEval === true) ? '#4ade80'
-    : userEval === false ? '#f87171'
-    : '#f87171'
-
   const bg = !answered
-    ? '#F4F4F1'
-    : (result?.autoCorrect || userEval === true) ? '#f0fdf4'
-    : userEval === false ? '#fef2f2'
-    : '#fef2f2'
+    ? '#e5e5e2'
+    : (result?.autoCorrect || userEval === true)
+      ? '#e5e5e2'
+      : '#c8c8c5'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      <label style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
         {label}
       </label>
       <input
@@ -412,12 +431,12 @@ function FieldInput({
         onKeyDown={e => e.key === 'Enter' && onEnter()}
         className={answered && result && !result.autoCorrect && userEval !== true ? 'shake' : ''}
         style={{
-          width: '100%', padding: '12px 14px',
-          borderRadius: 12, border: `1.5px solid ${borderColor}`,
+          width: '100%', padding: '9px 12px',
+          borderRadius: 10, border: 'none',
           background: bg, color: 'var(--text)',
-          fontSize: 16, fontFamily: 'inherit', outline: 'none',
+          fontSize: 14, fontFamily: 'inherit', outline: 'none',
           animationDelay: `${shakeDelay}s`,
-          transition: 'border-color 0.18s ease, background 0.18s ease',
+          transition: 'background 0.18s ease',
         }}
       />
       {answered && result && (
@@ -427,40 +446,55 @@ function FieldInput({
           style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
         >
           {result.autoCorrect ? (
-            <span style={{ fontSize: 13, color: 'var(--green)' }}>✓ Correcto</span>
+            <>
+              <span style={{ fontSize: 13, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                Correcto
+              </span>
+              {result.example && <WordExample example={result.example} />}
+            </>
           ) : (
             <>
-              <span style={{ fontSize: 13, color: 'var(--text3)' }}>
-                Respuesta: <span style={{ color: 'var(--text)', fontWeight: 600 }}>{result.expected}</span>
+              <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+                <span style={{ fontSize: 10, letterSpacing: '0.05em', marginRight: 4 }}>Respuesta:</span>
+                <span style={{ color: 'var(--text2)' }}>{result.expected}</span>
               </span>
+              {result.example && <WordExample example={result.example} />}
               {!isResolved ? (
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
                   <button
                     onClick={() => onSelfEval?.(true)}
                     style={{
                       flex: 1, padding: '8px 0', borderRadius: 10,
-                      background: '#f0fdf4', border: '1.5px solid #4ade80',
-                      color: '#16a34a', fontSize: 13, fontWeight: 600,
+                      background: '#3a3a3c', border: 'none',
+                      color: '#fff', fontSize: 13, fontWeight: 600,
                       fontFamily: 'inherit', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                     }}
                   >
-                    ✓ Lo sabía
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                    Correcto
                   </button>
                   <button
                     onClick={() => onSelfEval?.(false)}
                     style={{
                       flex: 1, padding: '8px 0', borderRadius: 10,
-                      background: '#fef2f2', border: '1.5px solid #f87171',
-                      color: '#dc2626', fontSize: 13, fontWeight: 600,
+                      background: '#e5e5e2', border: 'none',
+                      color: 'var(--text)', fontSize: 13, fontWeight: 600,
                       fontFamily: 'inherit', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                     }}
                   >
-                    ✗ No lo sabía
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    Incorrecto
                   </button>
                 </div>
               ) : (
-                <span style={{ fontSize: 13, color: userEval ? 'var(--green)' : 'var(--red)' }}>
-                  {userEval ? '✓ Marcado como correcto' : '✗ Marcado como incorrecto'}
+                <span style={{ fontSize: 13, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {userEval
+                    ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Marcado como correcto</>
+                    : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg> Marcado como incorrecto</>
+                  }
                 </span>
               )}
             </>
@@ -468,6 +502,18 @@ function FieldInput({
         </motion.div>
       )}
     </div>
+  )
+}
+
+function WordExample({ example }: { example: { word: string; furigana: string; meaning: string } }) {
+  return (
+    <span style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', alignItems: 'baseline', gap: 4 }}>
+      <span style={{ fontSize: 10, letterSpacing: '0.05em', marginRight: 2 }}>Ej.</span>
+      <span className="font-jp-serif" style={{ fontSize: 14, color: 'var(--text2)' }}>{example.word}</span>
+      <span style={{ color: 'var(--text3)' }}>({example.furigana})</span>
+      <span style={{ color: 'var(--text3)' }}>·</span>
+      <span style={{ color: 'var(--text2)' }}>{example.meaning}</span>
+    </span>
   )
 }
 

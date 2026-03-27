@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import type { AppScreen } from './types'
+import type { AppScreen, ItemResult } from './types'
 import { KANJI } from './kanji'
 import Lista from './Lista'
 import Practice from './Practice'
@@ -16,6 +16,17 @@ function loadSet(key: string): Set<string> {
 
 function saveSet(key: string, s: Set<string>) {
   localStorage.setItem(key, JSON.stringify([...s]))
+}
+
+function loadMap(key: string): Map<string, number> {
+  try {
+    const raw = localStorage.getItem(key)
+    return new Map(raw ? JSON.parse(raw) : [])
+  } catch { return new Map() }
+}
+
+function saveMap(key: string, m: Map<string, number>) {
+  localStorage.setItem(key, JSON.stringify([...m]))
 }
 
 // ── Icons ─────────────────────────────────────────────────────────────────
@@ -55,6 +66,11 @@ export default function App() {
   // Starred kanjis and words
   const [starredKanji,  setStarredKanji]  = useState<Set<string>>(() => loadSet('starred_kanji'))
   const [starredWords,  setStarredWords]  = useState<Set<string>>(() => loadSet('starred_words'))
+  // Weak kanjis and words (failed during practice)
+  const [weakKanji,     setWeakKanji]     = useState<Set<string>>(() => loadSet('weak_kanji'))
+  const [weakWords,     setWeakWords]     = useState<Set<string>>(() => loadSet('weak_words'))
+  const [weakKanjiMastery, setWeakKanjiMastery] = useState<Map<string, number>>(() => loadMap('weak_kanji_mastery'))
+  const [weakWordsMastery, setWeakWordsMastery] = useState<Map<string, number>>(() => loadMap('weak_words_mastery'))
 
   const isUnlocked = useCallback((k: { k: string; level: string }) => {
     if (k.level === 'N3' || k.level === 'N2' || k.level === 'N1') return unlockedN3.has(k.k)
@@ -99,6 +115,42 @@ export default function App() {
     })
   }, [])
 
+  const handleSessionResult = useCallback((results: ItemResult[]) => {
+    const newWeakKanji = new Set(weakKanji)
+    const newMasteryKanji = new Map(weakKanjiMastery)
+    results.filter(r => r.type === 'A').forEach(r => {
+      if (!r.correct) {
+        newWeakKanji.add(r.key)
+        newMasteryKanji.set(r.key, 0)
+      } else if (newWeakKanji.has(r.key)) {
+        const count = (newMasteryKanji.get(r.key) ?? 0) + 1
+        if (count >= 2) { newWeakKanji.delete(r.key); newMasteryKanji.delete(r.key) }
+        else newMasteryKanji.set(r.key, count)
+      }
+    })
+    saveSet('weak_kanji', newWeakKanji)
+    saveMap('weak_kanji_mastery', newMasteryKanji)
+    setWeakKanji(newWeakKanji)
+    setWeakKanjiMastery(newMasteryKanji)
+
+    const newWeakWords = new Set(weakWords)
+    const newMasteryWords = new Map(weakWordsMastery)
+    results.filter(r => r.type === 'B').forEach(r => {
+      if (!r.correct) {
+        newWeakWords.add(r.key)
+        newMasteryWords.set(r.key, 0)
+      } else if (newWeakWords.has(r.key)) {
+        const count = (newMasteryWords.get(r.key) ?? 0) + 1
+        if (count >= 2) { newWeakWords.delete(r.key); newMasteryWords.delete(r.key) }
+        else newMasteryWords.set(r.key, count)
+      }
+    })
+    saveSet('weak_words', newWeakWords)
+    saveMap('weak_words_mastery', newMasteryWords)
+    setWeakWords(newWeakWords)
+    setWeakWordsMastery(newMasteryWords)
+  }, [weakKanji, weakWords, weakKanjiMastery, weakWordsMastery])
+
   const visible  = KANJI.filter(isUnlocked)
   const lockedAll = KANJI.filter(k => !isUnlocked(k))
 
@@ -133,6 +185,9 @@ export default function App() {
                   visible={visible}
                   starredKanji={starredKanji}
                   starredWords={starredWords}
+                  weakKanji={weakKanji}
+                  weakWords={weakWords}
+                  onSessionResult={handleSessionResult}
                 />
             }
           </div>
