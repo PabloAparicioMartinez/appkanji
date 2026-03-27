@@ -83,11 +83,13 @@ function WordRow({ word, onClick, onStar, starred }: {
 }
 
 // ── WordSheet (bottom sheet, portal) ─────────────────────────────────────────
-function WordSheet({ word, onClose, isStarredWord, isStarredKanji }: {
+function WordSheet({ word, onClose, isStarredWord, isStarredKanji, onStarWord, onStarKanji }: {
   word: CompoundWord
   onClose: () => void
   isStarredWord?: (w: string) => boolean
   isStarredKanji?: (k: string) => boolean
+  onStarWord?: (w: string) => void
+  onStarKanji?: (k: string) => void
 }) {
   const chars = [...word.w]
   const found = chars.map(c => KANJI.find(k => k.k === c)).filter((k): k is Kanji => Boolean(k))
@@ -137,15 +139,29 @@ function WordSheet({ word, onClose, isStarredWord, isStarredKanji }: {
             <div style={{ fontSize: 15, color: 'var(--text)', fontWeight: 500, fontFamily: 'inherit' }}>{word.m}</div>
             <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 3 }}>{word.f}</div>
           </div>
-          {/* Non-interactive star indicator */}
-          <div style={{ width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 10 }}>
-            <svg width="18" height="18" viewBox="0 0 24 24"
-              fill={isStarredWord?.(word.w) ? 'currentColor' : 'none'}
-              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              style={{ color: isStarredWord?.(word.w) ? 'var(--text)' : 'var(--text3)', opacity: isStarredWord?.(word.w) ? 1 : 0.35 }}>
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-            </svg>
-          </div>
+          {onStarWord ? (
+            <button
+              onClick={e => { e.stopPropagation(); onStarWord(word.w) }}
+              className="flex items-center justify-center flex-shrink-0 press"
+              style={{ width: 44, height: '100%', minHeight: 44, background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginRight: 10 }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24"
+                fill={isStarredWord?.(word.w) ? 'currentColor' : 'none'}
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                style={{ color: isStarredWord?.(word.w) ? 'var(--text)' : 'var(--text3)' }}>
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            </button>
+          ) : (
+            <div style={{ width: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 10 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24"
+                fill={isStarredWord?.(word.w) ? 'currentColor' : 'none'}
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                style={{ color: isStarredWord?.(word.w) ? 'var(--text)' : 'var(--text3)', opacity: isStarredWord?.(word.w) ? 1 : 0.35 }}>
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            </div>
+          )}
         </div>
 
         {/* Kanji breakdown */}
@@ -169,7 +185,7 @@ function WordSheet({ word, onClose, isStarredWord, isStarredKanji }: {
                       style={{ fontSize: 34, lineHeight: 1, width: 64, paddingLeft: 16, color: 'var(--text)' }}>
                       {k.k}
                     </div>
-                    <div className="flex-1 min-w-0 py-2 pr-2">
+                    <div className="flex-1 min-w-0 py-2 pr-3" style={{ paddingLeft: 10 }}>
                       <div style={{ fontSize: 15, color: 'var(--text)' }} className="truncate">
                         {k.meanings.join(', ')}
                       </div>
@@ -189,15 +205,29 @@ function WordSheet({ word, onClose, isStarredWord, isStarredKanji }: {
                         )}
                       </div>
                     </div>
-                    {/* Non-interactive star indicator */}
-                    <div style={{ width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 6 }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24"
-                        fill={kStarred ? 'currentColor' : 'none'}
-                        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                        style={{ color: kStarred ? 'var(--text)' : 'var(--text3)', opacity: kStarred ? 1 : 0.35 }}>
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                      </svg>
-                    </div>
+                    {onStarKanji ? (
+                      <button
+                        onClick={e => { e.stopPropagation(); onStarKanji(k.k) }}
+                        className="flex items-center justify-center flex-shrink-0 press"
+                        style={{ width: 44, height: '100%', minHeight: 44, background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginRight: 10 }}
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24"
+                          fill={kStarred ? 'currentColor' : 'none'}
+                          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                          style={{ color: kStarred ? 'var(--text)' : 'var(--text3)' }}>
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                      </button>
+                    ) : (
+                      <div style={{ width: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 10 }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24"
+                          fill={kStarred ? 'currentColor' : 'none'}
+                          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                          style={{ color: kStarred ? 'var(--text)' : 'var(--text3)', opacity: kStarred ? 1 : 0.35 }}>
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -219,6 +249,7 @@ export default function Detail({
   const [selectedWord, setSelectedWord] = useState<CompoundWord | null>(null)
   const [snackbar, setSnackbar] = useState('')
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false)
+  const [animating, setAnimating] = useState(true)
 
   useEffect(() => {
     scrollRef.current?.scrollTo(0, 0)
@@ -237,15 +268,22 @@ export default function Detail({
     showSnack(alreadyStarred ? `${w} quitado de "Importantes"` : `${w} añadido a "Importantes"`)
   }
 
+  function handleStarKanji(k: string) {
+    const alreadyStarred = isStarredKanji?.(k) ?? false
+    onStar?.(k)
+    showSnack(alreadyStarred ? `${k} quitado de "Importantes"` : `${k} añadido a "Importantes"`)
+  }
+
   return (
     <motion.div
       className="fixed inset-0 z-50 flex flex-col"
-      style={{ background: '#F4F4F1' }}
+      style={{ background: '#F4F4F1', pointerEvents: animating ? 'none' : 'auto' }}
       initial={{ x: '100%' }}
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={IOS}
-      drag="x"
+      onAnimationComplete={() => setAnimating(false)}
+      drag={animating ? false : 'x'}
       dragConstraints={{ left: 0, right: 0 }}
       dragElastic={{ left: 0, right: 0.4 }}
       dragDirectionLock
@@ -433,7 +471,7 @@ export default function Detail({
               <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 14px 20px', gap: 8 }}>
                 <motion.button
                   whileTap={{ backgroundColor: '#2a2a2c' }}
-                  onClick={() => { setShowRemoveConfirm(false); onRemove?.(kanji.k) }}
+                  onClick={() => { setShowRemoveConfirm(false); onRemove?.(kanji.k); showSnack(`${kanji.k} quitado de "Mi lista"`) }}
                   style={{
                     width: '100%', padding: '14px', borderRadius: 12,
                     background: '#3a3a3c', color: '#fff',
@@ -490,6 +528,8 @@ export default function Detail({
             onClose={() => setSelectedWord(null)}
             isStarredWord={isStarredWord}
             isStarredKanji={isStarredKanji}
+            onStarWord={onStarWord ? handleStarWord : undefined}
+            onStarKanji={onStar ? handleStarKanji : undefined}
           />
         )}
       </AnimatePresence>

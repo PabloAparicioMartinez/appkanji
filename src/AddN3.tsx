@@ -26,6 +26,7 @@ export default function AddN3({ locked, onUnlock, onRemove, onClose, onStarWord,
   const [level, setLevel] = useState<JLPTLevel | null>(null)
   const [selected, setSelected] = useState<Kanji | null>(null)
   const [justUnlocked, setJustUnlocked] = useState<Set<string>>(new Set())
+  const [animating, setAnimating] = useState(true)
 
   const q = search.toLowerCase().trim()
   const items = locked.filter(k => {
@@ -55,18 +56,18 @@ export default function AddN3({ locked, onUnlock, onRemove, onClose, onStarWord,
       next.delete(char)
       return next
     })
-    setSelected(null)
   }
 
   return (
     <motion.div
       className="fixed inset-0 z-40 flex flex-col"
-      style={{ background: '#F4F4F1' }}
+      style={{ background: '#F4F4F1', pointerEvents: animating ? 'none' : 'auto' }}
       initial={{ x: '100%' }}
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ type: 'tween', duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
-      drag="x"
+      onAnimationComplete={() => setAnimating(false)}
+      drag={animating ? false : 'x'}
       dragConstraints={{ left: 0, right: 0 }}
       dragElastic={{ left: 0, right: 0.4 }}
       dragDirectionLock
@@ -232,8 +233,8 @@ function AddKanjiRow({ kanji, onClick }: { kanji: Kanji; onClick: () => void }) 
       </div>
 
       {/* Chevron */}
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-        style={{ color: 'var(--text3)', flexShrink: 0, marginRight: 14 }}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+        style={{ color: 'var(--text3)', flexShrink: 0, marginRight: 16 }}>
         <path d="M9 18l6-6-6-6"/>
       </svg>
     </div>

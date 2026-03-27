@@ -1,9 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
-import { createPortal } from 'react-dom'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { Kanji, JLPTLevel, SessionItem } from './types'
-
-const IOS = { type: 'tween' as const, duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
+import type { Kanji, JLPTLevel, SessionItem, PracticeMode } from './types'
+import PracticeSession from './PracticeSession'
 
 interface Props {
   visible: Kanji[]
@@ -11,10 +9,18 @@ interface Props {
   starredWords: Set<string>
 }
 
-type Phase = 'setup' | 'session' | 'results'
-type Mode = 'A' | 'B'
+type Mode = PracticeMode
 
-interface FieldResult { correct: boolean; expected: string }
+const MODES = [
+  { id: 'A' as Mode, title: 'Kanjis solos', subtitle: 'Ve un kanji y escribe su lectura y significado', icon: '漢' },
+  { id: 'B' as Mode, title: 'Palabras compuestas', subtitle: 'Ve una palabra y escribe su furigana y significado', icon: '熟語' },
+]
+
+const ALL_LEVELS: JLPTLevel[] = ['N5', 'N4', 'N3', 'N2', 'N1']
+
+const LEVEL_COLORS: Record<JLPTLevel, string> = {
+  N5: 'var(--n5)', N4: 'var(--n4)', N3: 'var(--n3)', N2: 'var(--n2)', N1: 'var(--n1)',
+}
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
@@ -25,46 +31,13 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-function norm(s: string) {
-  return s.toLowerCase().replace(/\s/g, '')
-}
-
-const MODES = [
-  { id: 'A' as Mode, title: 'Kanjis solos', subtitle: 'Ve un kanji y escribe su lectura y significado', icon: '漢' },
-  { id: 'B' as Mode, title: 'Palabras compuestas', subtitle: 'Ve una palabra y escribe su furigana y significado', icon: '熟語' },
-]
-
-const ALL_LEVELS: JLPTLevel[] = ['N5', 'N4', 'N3', 'N2', 'N1']
-
-const LEVEL_COLORS: Record<JLPTLevel, string> = {
-  N5: 'var(--n5)',
-  N4: 'var(--n4)',
-  N3: 'var(--n3)',
-  N2: 'var(--n2)',
-  N1: 'var(--n1)',
-}
-
 export default function Practice({ visible, starredKanji, starredWords }: Props) {
-  const [phase, setPhase] = useState<Phase>('setup')
-
-  // Setup state
   const [mode,        setMode]        = useState<Mode>('A')
   const [levels,      setLevels]      = useState<Set<JLPTLevel>>(new Set())
   const [count,       setCount]       = useState(20)
   const [onlySpecial, setOnlySpecial] = useState(false)
-
-  // Session state
-  const [session,   setSession]   = useState<SessionItem[]>([])
-  const [idx,       setIdx]       = useState(0)
-  const [correct,   setCorrect]   = useState(0)
-  const [answered,  setAnswered]  = useState(false)
-  const [results,   setResults]   = useState<FieldResult[]>([])
-
-  // Input refs
-  const onRef   = useRef<HTMLInputElement>(null)
-  const kunRef  = useRef<HTMLInputElement>(null)
-  const meanRef = useRef<HTMLInputElement>(null)
-  const furiRef = useRef<HTMLInputElement>(null)
+  const [session,     setSession]     = useState<SessionItem[]>([])
+  const [showSession, setShowSession] = useState(false)
 
   const basePool = levels.size > 0 ? visible.filter(k => levels.has(k.level)) : visible
   const pool = onlySpecial ? basePool.filter(k => starredKanji.has(k.k)) : basePool
@@ -87,8 +60,7 @@ export default function Practice({ visible, starredKanji, starredWords }: Props)
   function toggleLevel(l: JLPTLevel) {
     setLevels(prev => {
       const next = new Set(prev)
-      if (next.has(l)) next.delete(l)
-      else next.add(l)
+      if (next.has(l)) next.delete(l); else next.add(l)
       return next
     })
   }
@@ -105,87 +77,9 @@ export default function Practice({ visible, starredKanji, starredWords }: Props)
       items = shuffle(words).slice(0, count)
     }
     setSession(items)
-    setIdx(0)
-    setCorrect(0)
-    setAnswered(false)
-    setResults([])
-    setPhase('session')
-    setTimeout(() => (mode === 'A' ? onRef : furiRef).current?.focus(), 100)
+    setShowSession(true)
   }
 
-  function checkAnswer() {
-    if (answered) return
-    const item = session[idx]
-    const fieldResults: FieldResult[] = []
-    let allOk = true
-
-    if (item.type === 'A' && item.kanji) {
-      const k = item.kanji
-      const onVal   = onRef.current?.value   ?? ''
-      const kunVal  = kunRef.current?.value  ?? ''
-      const meanVal = meanRef.current?.value ?? ''
-
-      const onOk   = k.on.length  === 0 || k.on.some(r  => norm(r)  === norm(onVal))
-      const kunOk  = k.kun.length === 0 || k.kun.some(r => norm(r)  === norm(kunVal))
-      const meanOk = k.meanings.some(m =>
-        norm(m).includes(norm(meanVal)) || norm(meanVal).includes(norm(m))
-      )
-
-      fieldResults.push({ correct: onOk,   expected: k.on.join('、')       || '—' })
-      fieldResults.push({ correct: kunOk,  expected: k.kun.join('、')      || '—' })
-      fieldResults.push({ correct: meanOk, expected: k.meanings.join(', ') })
-      allOk = onOk && kunOk && meanOk
-
-    } else if (item.type === 'B' && item.word) {
-      const w = item.word
-      const furiVal = furiRef.current?.value  ?? ''
-      const meanVal = meanRef.current?.value  ?? ''
-
-      const furiOk = norm(w.f) === norm(furiVal)
-      const meanOk = norm(w.m).includes(norm(meanVal)) || norm(meanVal).includes(norm(w.m))
-
-      fieldResults.push({ correct: furiOk, expected: w.f })
-      fieldResults.push({ correct: meanOk, expected: w.m })
-      allOk = furiOk && meanOk
-    }
-
-    if (allOk) setCorrect(c => c + 1)
-    setResults(fieldResults)
-    setAnswered(true)
-  }
-
-  function nextCard() {
-    if (idx + 1 >= session.length) {
-      setPhase('results')
-    } else {
-      setIdx(i => i + 1)
-      setAnswered(false)
-      setResults([])
-      if (onRef.current)   onRef.current.value   = ''
-      if (kunRef.current)  kunRef.current.value  = ''
-      if (meanRef.current) meanRef.current.value = ''
-      if (furiRef.current) furiRef.current.value = ''
-      setTimeout(() => (mode === 'A' ? onRef : furiRef).current?.focus(), 80)
-    }
-  }
-
-  // ── SESSION data ─────────────────────────────────────────────────────────
-  const item = session[idx]
-  const progressPct = session.length > 0 ? (idx / session.length) * 100 : 0
-  const isA = item?.type === 'A'
-  const allCorrect = results.length > 0 && results.every(r => r.correct)
-  const fields = isA
-    ? [
-        { ref: onRef,   label: 'Lectura ON',   placeholder: 'ej: ニチ',     result: results[0] },
-        { ref: kunRef,  label: 'Lectura KUN',  placeholder: 'ej: ひ',       result: results[1] },
-        { ref: meanRef, label: 'Significado',  placeholder: 'ej: sol, día', result: results[2] },
-      ]
-    : [
-        { ref: furiRef, label: 'Furigana',    placeholder: 'ej: にほんご',  result: results[0] },
-        { ref: meanRef, label: 'Significado', placeholder: 'ej: japonés',   result: results[1] },
-      ]
-  const pct = session.length > 0 ? Math.round((correct / session.length) * 100) : 0
-  const emoji = pct >= 80 ? '🎉' : pct >= 50 ? '💪' : '📚'
   const canStart = onlySpecial ? pool.length > 0 : levels.size > 0 && pool.length > 0
 
   return (
@@ -288,7 +182,7 @@ export default function Practice({ visible, starredKanji, starredWords }: Props)
             <div style={{ display: 'flex', background: '#e5e5e2', borderRadius: 12, padding: 3 }}>
               {([
                 { id: false as boolean, title: 'Todos', icon: '全' },
-                { id: true as boolean, title: 'Importantes', icon: '★' },
+                { id: true  as boolean, title: 'Importantes', icon: '★' },
               ]).map(f => {
                 const active = onlySpecial === f.id
                 return (
@@ -380,239 +274,18 @@ export default function Practice({ visible, starredKanji, starredWords }: Props)
         </div>
       </div>
 
-      {/* ── SESSION / RESULTS overlay (portal) ── */}
-      {createPortal(
-        <AnimatePresence>
-          {phase !== 'setup' && (
-            <motion.div
-              className="fixed inset-0 z-50 flex flex-col"
-              style={{ background: '#F4F4F1' }}
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={IOS}
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={{ left: 0, right: 0.4 }}
-              dragDirectionLock
-              onDragEnd={(_, info) => {
-                if (info.offset.x > 80 || info.velocity.x > 500) setPhase('setup')
-              }}
-            >
-              {phase === 'results' ? (
-                /* ── RESULTS ── */
-                <motion.div
-                  key="results"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex flex-col items-center justify-center h-full px-8 text-center"
-                  style={{ gap: 16 }}
-                >
-                  <div style={{ fontSize: 64 }}>{emoji}</div>
-                  <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text)' }}>
-                    {pct >= 80 ? '¡Excelente!' : pct >= 50 ? '¡Buen trabajo!' : '¡Sigue practicando!'}
-                  </div>
-                  <div style={{ fontSize: 18, color: 'var(--text2)' }}>
-                    {correct} de {session.length} correctas ({pct}%)
-                  </div>
-                  <button
-                    onClick={startSession}
-                    className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold press"
-                    style={{ background: '#3a3a3c', fontFamily: 'inherit', marginTop: 16 }}
-                  >
-                    Otra sesión
-                  </button>
-                  <button
-                    onClick={() => setPhase('setup')}
-                    className="w-full py-4 rounded-2xl text-[16px] press"
-                    style={{ background: '#e5e5e2', color: 'var(--text)', border: 'none', fontFamily: 'inherit' }}
-                  >
-                    Volver
-                  </button>
-                </motion.div>
-              ) : (
-                /* ── SESSION ── */
-                <>
-                  {/* Thin progress bar */}
-                  <div style={{ height: 3, background: 'var(--border)', flexShrink: 0 }}>
-                    <motion.div
-                      style={{ height: '100%', background: 'var(--primary)' }}
-                      animate={{ width: `${progressPct}%` }}
-                      transition={{ duration: 0.3 }}
-                    />
-                  </div>
-
-                  {/* Nav */}
-                  <div
-                    className="flex items-center justify-between px-4"
-                    style={{
-                      paddingTop: 'calc(0.75rem + env(safe-area-inset-top))',
-                      paddingBottom: '0.5rem',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <motion.button
-                      whileTap={{ scale: 0.88 }}
-                      onClick={() => setPhase('setup')}
-                      className="w-9 h-9 rounded-full flex items-center justify-center press"
-                      style={{ background: '#e5e5e2' }}
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ color: 'var(--text)' }}>
-                        <path d="M15 18l-6-6 6-6"/>
-                      </svg>
-                    </motion.button>
-                    <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text3)' }}>
-                      {idx + 1} / {session.length}
-                    </span>
-                  </div>
-
-                  {/* Body */}
-                  <div className="scroll flex-1 px-4" style={{ display: 'flex', flexDirection: 'column' }}>
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={idx}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.16 }}
-                        className="flex flex-col items-center"
-                        style={{ paddingTop: 28, paddingBottom: 28 }}
-                      >
-                        {isA && item?.kanji ? (
-                          <>
-                            <div className="font-jp-serif" style={{ fontSize: 112, lineHeight: 1, color: 'var(--text)' }}>
-                              {item.kanji.k}
-                            </div>
-                            <div style={{ marginTop: 14 }}>
-                              <LevelBadge level={item.kanji.level} />
-                            </div>
-                          </>
-                        ) : item?.word ? (
-                          <>
-                            <div className="font-jp-serif" style={{ fontSize: 58, lineHeight: 1, color: 'var(--text)' }}>
-                              {item.word.w}
-                            </div>
-                            <div style={{ marginTop: 14 }}>
-                              <LevelBadge level={item.word.l} />
-                            </div>
-                          </>
-                        ) : null}
-                      </motion.div>
-                    </AnimatePresence>
-
-                    <div style={{ height: 24, flexShrink: 0 }} />
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                      {fields.map((f, i) => (
-                        <FieldInput
-                          key={f.label}
-                          fieldRef={f.ref}
-                          label={f.label}
-                          placeholder={f.placeholder}
-                          result={f.result}
-                          answered={answered}
-                          onEnter={() => !answered && checkAnswer()}
-                          shakeDelay={i * 0.05}
-                        />
-                      ))}
-                    </div>
-
-                    <div style={{ flex: 1, minHeight: 24 }} />
-                  </div>
-
-                  {/* Footer */}
-                  <div
-                    className="px-4 py-4"
-                    style={{
-                      paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {!answered ? (
-                      <button
-                        onClick={checkAnswer}
-                        className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold press"
-                        style={{ background: '#3a3a3c', fontFamily: 'inherit' }}
-                      >
-                        Comprobar
-                      </button>
-                    ) : (
-                      <motion.button
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        onClick={nextCard}
-                        className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold press"
-                        style={{
-                          background: allCorrect ? 'var(--green)' : '#3a3a3c',
-                          fontFamily: 'inherit',
-                        }}
-                      >
-                        {idx + 1 < session.length ? 'Siguiente' : 'Ver resultados'}
-                      </motion.button>
-                    )}
-                  </div>
-                </>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
+      {/* ── SESSION screen ── */}
+      <AnimatePresence>
+        {showSession && (
+          <PracticeSession
+            session={session}
+            mode={mode}
+            onClose={() => setShowSession(false)}
+            onRestart={startSession}
+          />
+        )}
+      </AnimatePresence>
     </>
-  )
-}
-
-// ── Sub-components ────────────────────────────────────────────────────────
-
-function FieldInput({
-  fieldRef, label, placeholder, result, answered, onEnter, shakeDelay
-}: {
-  fieldRef: React.RefObject<HTMLInputElement | null>
-  label: string
-  placeholder: string
-  result?: FieldResult
-  answered: boolean
-  onEnter: () => void
-  shakeDelay: number
-}) {
-  const borderColor = !answered
-    ? 'var(--border)'
-    : result?.correct ? '#4ade80' : '#f87171'
-  const bg = !answered
-    ? '#F4F4F1'
-    : result?.correct ? '#f0fdf4' : '#fef2f2'
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-        {label}
-      </label>
-      <input
-        ref={fieldRef as React.RefObject<HTMLInputElement>}
-        type="text"
-        placeholder={placeholder}
-        readOnly={answered}
-        onKeyDown={e => e.key === 'Enter' && onEnter()}
-        className={answered && result && !result.correct ? 'shake' : ''}
-        style={{
-          width: '100%', padding: '12px 14px',
-          borderRadius: 12, border: `1.5px solid ${borderColor}`,
-          background: bg, color: 'var(--text)',
-          fontSize: 16, fontFamily: 'inherit', outline: 'none',
-          animationDelay: `${shakeDelay}s`,
-          transition: 'border-color 0.18s ease, background 0.18s ease',
-        }}
-      />
-      {answered && result && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          style={{ fontSize: 13, color: result.correct ? 'var(--green)' : 'var(--red)' }}
-        >
-          {result.correct ? '✓ Correcto' : `✗ Correcto: ${result.expected}`}
-        </motion.div>
-      )}
-    </div>
   )
 }
 
@@ -621,20 +294,5 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
       {children}
     </div>
-  )
-}
-
-function LevelBadge({ level }: { level: JLPTLevel }) {
-  const colors: Record<JLPTLevel, string> = {
-    N5: 'var(--n5)',
-    N4: 'var(--n4)',
-    N3: 'var(--n3)',
-    N2: 'var(--n2)',
-    N1: 'var(--n1)',
-  }
-  return (
-    <span style={{ background: colors[level], color: '#fff', fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20 }}>
-      {level}
-    </span>
   )
 }
