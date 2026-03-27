@@ -296,23 +296,22 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
           >
             {!answered ? (
               <motion.button
-                initial={{ backgroundColor: '#3a3a3c' }}
-                animate={{ backgroundColor: '#3a3a3c' }}
-                whileTap={{ backgroundColor: '#2a2a2c' }}
+                whileTap={{ opacity: 0.75 }}
                 onClick={checkAnswer}
                 className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold"
-                style={{ fontFamily: 'inherit', border: 'none', cursor: 'pointer' }}
+                style={{ background: '#3a3a3c', fontFamily: 'inherit', border: 'none', cursor: 'pointer' }}
               >
                 Comprobar
               </motion.button>
             ) : (
               <motion.button
-                initial={{ opacity: 0, y: 6, backgroundColor: '#3a3a3c' }}
-                animate={{ opacity: canProceed ? 1 : 0.35, y: 0, backgroundColor: '#3a3a3c' }}
-                whileTap={{ backgroundColor: '#2a2a2c' }}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: canProceed ? 1 : 0.35, y: 0 }}
+                whileTap={{ opacity: canProceed ? 0.75 : 0.35 }}
                 onClick={canProceed ? nextCard : undefined}
                 className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold"
                 style={{
+                  background: '#3a3a3c',
                   fontFamily: 'inherit',
                   border: 'none',
                   cursor: canProceed ? 'pointer' : 'default',
