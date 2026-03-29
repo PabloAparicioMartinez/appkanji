@@ -112,8 +112,9 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
             fontSize: 13,
             fontWeight: 600,
             fontFamily: 'inherit',
-            border: `1.5px solid #3a3a3c`,
+            border: onlyStarred ? '1.5px solid transparent' : '1.5px solid #3a3a3c',
             background: onlyStarred ? '#3a3a3c' : '#F4F4F1',
+            opacity: 0.55,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -142,11 +143,12 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
                 fontWeight: 600,
                 letterSpacing: '0.03em',
                 fontFamily: 'inherit',
-                border: `1.5px solid ${c.color}`,
+                border: active ? '1.5px solid transparent' : `1.5px solid ${c.color}`,
                 background: active ? c.color : '#F4F4F1',
                 color: active ? '#fff' : c.color,
+                opacity: 0.55,
                 cursor: 'pointer',
-                transition: 'background 0.18s ease, color 0.15s ease',
+                transition: 'background 0.18s ease, color 0.15s ease, opacity 0.18s ease',
               }}
             >
               {l}
@@ -169,7 +171,7 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
                 <path d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607z"/>
               </svg>
             </div>
-            <p style={{ fontSize: 14, color: 'var(--text3)' }}>No se encontraron kanji</p>
+            <p style={{ fontSize: 14, color: 'var(--text3)' }}>No hay kanjis de este nivel en tu lista</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

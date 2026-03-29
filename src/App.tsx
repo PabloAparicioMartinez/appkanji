@@ -155,7 +155,7 @@ export default function App() {
   const lockedAll = KANJI.filter(k => !isUnlocked(k))
 
   const tabs = [
-    { id: 'lista'     as AppScreen, label: 'Lista',     Icon: GridIcon },
+    { id: 'lista'     as AppScreen, label: 'Mi lista',     Icon: GridIcon },
     { id: 'practicar' as AppScreen, label: 'Practicar', Icon: StarIcon },
   ]
 

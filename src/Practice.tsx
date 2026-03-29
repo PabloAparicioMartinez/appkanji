@@ -39,7 +39,7 @@ export default function Practice({ visible, starredKanji, starredWords, weakKanj
   const [mode,        setMode]        = useState<Mode>('A')
   const [levels,      setLevels]      = useState<Set<JLPTLevel>>(new Set())
   const [count,       setCount]       = useState(20)
-  const [countPreset, setCountPreset] = useState<'all' | '5' | '10' | '20' | 'custom'>('5')
+  const [countPreset, setCountPreset] = useState<'all' | '5' | '10' | '20' | 'custom' | null>(null)
   const [customInput, setCustomInput] = useState('')
   const [filter,      setFilter]      = useState<FilterType>('all')
   const [session,     setSession]     = useState<SessionItem[]>([])
@@ -73,7 +73,7 @@ export default function Practice({ visible, starredKanji, starredWords, weakKanj
 
   function handleFilterChange(f: FilterType) {
     setFilter(f)
-    setCountPreset(f === 'all' ? '20' : 'all')
+    setCountPreset(null)
   }
 
   function toggleLevel(l: JLPTLevel) {
@@ -100,11 +100,11 @@ export default function Practice({ visible, starredKanji, starredWords, weakKanj
     setShowSession(true)
   }
 
-  const canStart = filter === 'all'
+  const canStart = countPreset !== null && (filter === 'all'
     ? levels.size > 0 && pool.length > 0
     : filter === 'weak' && mode === 'B'
     ? weakWordItems.length > 0
-    : pool.length > 0
+    : pool.length > 0)
 
   return (
     <>
@@ -178,24 +178,23 @@ export default function Practice({ visible, starredKanji, starredWords, weakKanj
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
               {ALL_LEVELS.map(l => {
-                const active = filter !== 'all' || levels.has(l)
                 const color = LEVEL_COLORS[l]
                 return (
                   <button
                     key={l}
                     onClick={() => filter === 'all' && toggleLevel(l)}
                     style={{
-                      padding: '8px 0',
+                      padding: '7px 0',
                       borderRadius: 20,
                       fontSize: 13,
                       fontWeight: 600,
                       letterSpacing: '0.03em',
                       fontFamily: 'inherit',
-                      border: `1.5px solid ${color}`,
-                      background: active ? color : '#F4F4F1',
-                      color: active ? '#fff' : color,
+                      border: (filter !== 'all' || levels.has(l)) ? '1.5px solid transparent' : `1.5px solid ${color}`,
+                      background: (filter !== 'all' || levels.has(l)) ? color : '#F4F4F1',
+                      color: (filter !== 'all' || levels.has(l)) ? '#fff' : color,
                       cursor: filter === 'all' ? 'pointer' : 'default',
-                      opacity: filter !== 'all' ? 0.55 : 1,
+                      opacity: 0.55,
                       transition: 'background 0.18s ease, color 0.15s ease, opacity 0.18s ease',
                     }}
                   >
@@ -303,7 +302,7 @@ export default function Practice({ visible, starredKanji, starredWords, weakKanj
             )}
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8, textAlign: 'center' }}>
               {countPreset !== 'all' && <>{count} de </>}
-              {maxPool} {filter === 'weak' && mode === 'B' ? 'palabras' : 'kanji'} disponibles
+              {maxPool} {filter === 'weak' && mode === 'B' ? 'palabras' : 'kanji'} seleccionados
             </div>
           </div>
 

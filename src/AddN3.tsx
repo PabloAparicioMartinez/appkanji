@@ -141,11 +141,12 @@ export default function AddN3({ locked, onUnlock, onRemove, onClose, onStarWord,
                 fontWeight: 600,
                 letterSpacing: '0.03em',
                 fontFamily: 'inherit',
-                border: `1.5px solid ${c.color}`,
+                border: active ? '1.5px solid transparent' : `1.5px solid ${c.color}`,
                 background: active ? c.color : '#F4F4F1',
                 color: active ? '#fff' : c.color,
+                opacity: 0.55,
                 cursor: 'pointer',
-                transition: 'background 0.18s ease, color 0.15s ease',
+                transition: 'background 0.18s ease, color 0.15s ease, opacity 0.18s ease',
               }}
             >
               {l}
@@ -160,9 +161,18 @@ export default function AddN3({ locked, onUnlock, onRemove, onClose, onStarWord,
         style={{ background: '#F4F4F1', touchAction: 'pan-y' }}
       >
         {items.length === 0 ? (
-          <div className="text-center py-16" style={{ color: 'var(--text3)' }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>✓</div>
-            <p style={{ fontSize: 15 }}>¡Todos los kanji están en tu lista!</p>
+          <div className="flex flex-col items-center py-20" style={{ color: 'var(--text3)' }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: 16,
+              background: '#e5e5e2',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: 14,
+            }}>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text3)' }}>
+                <path d="M20 6L9 17l-5-5"/>
+              </svg>
+            </div>
+            <p style={{ fontSize: 14, color: 'var(--text3)' }}>Todos los kanji están en tu lista</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -212,7 +222,7 @@ function AddKanjiRow({ kanji, onClick }: { kanji: Kanji; onClick: () => void }) 
       </div>
 
       {/* Info */}
-      <div className="flex-1 min-w-0 py-2 pr-3">
+      <div className="flex-1 min-w-0 py-2 pr-3" style={{ paddingLeft: 10 }}>
         <div style={{ fontSize: 15, color: 'var(--text)' }} className="truncate">
           {kanji.meanings.join(', ')}
         </div>
