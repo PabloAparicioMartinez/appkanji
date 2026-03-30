@@ -27,7 +27,7 @@ const LEVEL_COLORS: Record<JLPTLevel, { bg: string; color: string; stripe: strin
 
 export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemove, onStar, onStarWord, starredKanji, starredWords }: Props) {
   const [search, setSearch] = useState('')
-  const [level, setLevel] = useState<JLPTLevel | null>(null)
+  const [levels, setLevels] = useState<Set<JLPTLevel>>(new Set())
   const [onlyStarred, setOnlyStarred] = useState(false)
   const [selected, setSelected] = useState<Kanji | null>(null)
   const [showAddN3, setShowAddN3] = useState(false)
@@ -35,7 +35,7 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
   const q = search.toLowerCase().trim()
   const items = visible.filter(k => {
     if (onlyStarred && !starredKanji.has(k.k)) return false
-    if (level !== null && k.level !== level) return false
+    if (levels.size > 0 && !levels.has(k.level)) return false
     if (!q) return true
     return (
       k.k.includes(q) ||
@@ -46,6 +46,14 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
       k.kun.some(r => readingMatchesQuery(r, q))
     )
   })
+
+  function toggleLevel(l: JLPTLevel) {
+    setLevels(prev => {
+      const next = new Set(prev)
+      if (next.has(l)) next.delete(l); else next.add(l)
+      return next
+    })
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -114,7 +122,7 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
             fontFamily: 'inherit',
             border: onlyStarred ? '1.5px solid transparent' : '1.5px solid #3a3a3c',
             background: onlyStarred ? '#3a3a3c' : '#F4F4F1',
-            opacity: 0.55,
+            opacity: 0.8,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -131,11 +139,11 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
 
         {(['N5', 'N4', 'N3', 'N2', 'N1'] as const).map(l => {
           const c = LEVEL_COLORS[l]
-          const active = level === l
+          const active = levels.has(l)
           return (
             <button
               key={l}
-              onClick={() => setLevel(active ? null : l)}
+              onClick={() => toggleLevel(l)}
               style={{
                 padding: '7px 0',
                 borderRadius: 20,
@@ -146,9 +154,8 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
                 border: active ? '1.5px solid transparent' : `1.5px solid ${c.color}`,
                 background: active ? c.color : '#F4F4F1',
                 color: active ? '#fff' : c.color,
-                opacity: 0.55,
+                opacity: 0.8,
                 cursor: 'pointer',
-                transition: 'background 0.18s ease, color 0.15s ease, opacity 0.18s ease',
               }}
             >
               {l}

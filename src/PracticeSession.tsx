@@ -524,7 +524,7 @@ function LevelBadge({ level }: { level: JLPTLevel }) {
     N5: 'var(--n5)', N4: 'var(--n4)', N3: 'var(--n3)', N2: 'var(--n2)', N1: 'var(--n1)',
   }
   return (
-    <span style={{ background: colors[level], color: '#fff', fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, opacity: 0.55 }}>
+    <span style={{ background: colors[level], color: '#fff', fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, opacity: 0.8 }}>
       {level}
     </span>
   )

@@ -1,10 +1,12 @@
 import { useState, useCallback } from 'react'
-import { AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import type { AppScreen, ItemResult } from './types'
 import { KANJI } from './kanji'
 import Lista from './Lista'
 import Practice from './Practice'
 import Splash from './Splash'
+
+const IOS = { type: 'tween' as const, duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
 
 // ── Persistent state helpers ──────────────────────────────────────────────
 function loadSet(key: string): Set<string> {
@@ -167,7 +169,10 @@ export default function App() {
       {/* Main content */}
       <div className="flex-1 overflow-hidden relative">
         <AnimatePresence initial={false}>
-          <div key={screen} className="absolute inset-0 flex flex-col">
+          <motion.div 
+            key={screen} 
+            className="absolute inset-0 flex flex-col"
+          >
             {screen === 'lista'
               ? <Lista
                   visible={visible}
@@ -189,7 +194,7 @@ export default function App() {
                   onSessionResult={handleSessionResult}
                 />
             }
-          </div>
+          </motion.div>
         </AnimatePresence>
       </div>
 

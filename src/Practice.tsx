@@ -100,7 +100,7 @@ export default function Practice({ visible, starredKanji, starredWords, weakKanj
     setShowSession(true)
   }
 
-  const canStart = countPreset !== null && (filter === 'all'
+  const canStart = countPreset !== null && count > 0 && (filter === 'all'
     ? levels.size > 0 && pool.length > 0
     : filter === 'weak' && mode === 'B'
     ? weakWordItems.length > 0
@@ -194,8 +194,7 @@ export default function Practice({ visible, starredKanji, starredWords, weakKanj
                       background: (filter !== 'all' || levels.has(l)) ? color : '#F4F4F1',
                       color: (filter !== 'all' || levels.has(l)) ? '#fff' : color,
                       cursor: filter === 'all' ? 'pointer' : 'default',
-                      opacity: 0.55,
-                      transition: 'background 0.18s ease, color 0.15s ease, opacity 0.18s ease',
+                      opacity: 0.8,
                     }}
                   >
                     {l}

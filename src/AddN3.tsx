@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Kanji, JLPTLevel } from './types'
 import Detail from './Detail'
@@ -12,6 +12,8 @@ const LEVEL_COLORS: Record<JLPTLevel, { color: string; stripe: string }> = {
   N1: { color: 'var(--n1)', stripe: 'var(--n1)' },
 }
 
+const IOS = { type: 'tween' as const, duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
+
 interface Props {
   locked: Kanji[]
   onUnlock: (char: string) => void
@@ -23,15 +25,15 @@ interface Props {
 
 export default function AddN3({ locked, onUnlock, onRemove, onClose, onStarWord, isStarredWord }: Props) {
   const [search, setSearch] = useState('')
-  const [level, setLevel] = useState<JLPTLevel | null>(null)
+  const [levels, setLevels] = useState<Set<JLPTLevel>>(new Set())
   const [selected, setSelected] = useState<Kanji | null>(null)
   const [justUnlocked, setJustUnlocked] = useState<Set<string>>(new Set())
   const [animating, setAnimating] = useState(true)
 
   const q = search.toLowerCase().trim()
-  const items = locked.filter(k => {
+  const items = useMemo(() => locked.filter(k => {
     if (justUnlocked.has(k.k)) return false
-    if (level !== null && k.level !== level) return false
+    if (levels.size > 0 && !levels.has(k.level)) return false
     if (!q) return true
     return (
       k.k.includes(q) ||
@@ -41,7 +43,15 @@ export default function AddN3({ locked, onUnlock, onRemove, onClose, onStarWord,
       k.on.some(r => readingMatchesQuery(r, q)) ||
       k.kun.some(r => readingMatchesQuery(r, q))
     )
-  })
+  }), [locked, justUnlocked, levels, q])
+
+  function toggleLevel(l: JLPTLevel) {
+    setLevels(prev => {
+      const next = new Set(prev)
+      if (next.has(l)) next.delete(l); else next.add(l)
+      return next
+    })
+  }
 
   function handleUnlock(char: string) {
     onUnlock(char)
@@ -60,12 +70,12 @@ export default function AddN3({ locked, onUnlock, onRemove, onClose, onStarWord,
 
   return (
     <motion.div
-      className="fixed inset-0 z-40 flex flex-col"
+      className="fixed inset-0 z-50 flex flex-col"
       style={{ background: '#F4F4F1', pointerEvents: animating ? 'none' : 'auto' }}
       initial={{ x: '100%' }}
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
-      transition={{ type: 'tween', duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
+      transition={IOS}
       onAnimationComplete={() => setAnimating(false)}
       drag={animating ? false : 'x'}
       dragConstraints={{ left: 0, right: 0 }}
@@ -129,11 +139,11 @@ export default function AddN3({ locked, onUnlock, onRemove, onClose, onStarWord,
       >
         {(['N5', 'N4', 'N3', 'N2', 'N1'] as const).map(l => {
           const c = LEVEL_COLORS[l]
-          const active = level === l
+          const active = levels.has(l)
           return (
             <button
               key={l}
-              onClick={() => setLevel(active ? null : l)}
+              onClick={() => toggleLevel(l)}
               style={{
                 padding: '7px 0',
                 borderRadius: 20,
@@ -144,9 +154,8 @@ export default function AddN3({ locked, onUnlock, onRemove, onClose, onStarWord,
                 border: active ? '1.5px solid transparent' : `1.5px solid ${c.color}`,
                 background: active ? c.color : '#F4F4F1',
                 color: active ? '#fff' : c.color,
-                opacity: 0.55,
+                opacity: 0.8,
                 cursor: 'pointer',
-                transition: 'background 0.18s ease, color 0.15s ease, opacity 0.18s ease',
               }}
             >
               {l}
