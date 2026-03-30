@@ -118,7 +118,7 @@ export default function Practice({ visible, starredKanji, starredWords, weakKanj
             paddingBottom: '0.5rem',
           }}
         >
-          <h1 style={{ fontSize: 30, fontWeight: 700, color: 'var(--text)', lineHeight: '36px' }}>Practicar</h1>
+          <h1 style={{ fontSize: 30, fontWeight: 700, color: 'var(--text)', lineHeight: '36px' }}>Repaso</h1>
         </div>
 
         <div className="scroll flex-1 px-4 py-6" style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>

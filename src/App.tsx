@@ -6,8 +6,6 @@ import Lista from './Lista'
 import Practice from './Practice'
 import Splash from './Splash'
 
-const IOS = { type: 'tween' as const, duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
-
 // ── Persistent state helpers ──────────────────────────────────────────────
 function loadSet(key: string): Set<string> {
   try {

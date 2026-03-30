@@ -33,8 +33,8 @@ function Badge({ level }: { level: JLPTLevel }) {
   return (
     <span style={{
       background: c.main, color: '#fff',
-      borderRadius: 20, padding: '5px 14px',
-      fontSize: 12, fontWeight: 600, letterSpacing: '0.04em',
+      borderRadius: 20, padding: '6px 16px',
+      fontSize: 13, fontWeight: 600, letterSpacing: '0.04em',
       flexShrink: 0, opacity: 0.8,
     }}>
       {level}
@@ -463,7 +463,7 @@ export default function Detail({
                   ¿Quitar de mi lista?
                 </div>
                 <div style={{ fontSize: 14, color: 'var(--text3)', lineHeight: 1.4 }}>
-                  {kanji.k} volverá a la pantalla "Añadir Kanji".
+                  {kanji.k} volverá a la pantalla "Añadir kanji".
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 14px 20px', gap: 8 }}>

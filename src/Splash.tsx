@@ -31,7 +31,7 @@ export default function Splash({ onDone }: { onDone: () => void }) {
         }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.2, duration: 0.6 }}
+        transition={{ delay: 0.2, duration: 0.4 }}
       >
         日本語学習
       </motion.span>

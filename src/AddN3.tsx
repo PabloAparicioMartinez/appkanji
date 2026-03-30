@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Kanji, JLPTLevel } from './types'
 import Detail from './Detail'
@@ -29,21 +29,33 @@ export default function AddN3({ locked, onUnlock, onRemove, onClose, onStarWord,
   const [selected, setSelected] = useState<Kanji | null>(null)
   const [justUnlocked, setJustUnlocked] = useState<Set<string>>(new Set())
   const [animating, setAnimating] = useState(true)
+  const [loadingComplete, setLoadingComplete] = useState(false)
+
+  // Ensure loading screen shows for minimum duration
+  useEffect(() => {
+    if (animating || loadingComplete) return
+    const timer = setTimeout(() => setLoadingComplete(true), 500)
+    return () => clearTimeout(timer)
+  }, [animating, loadingComplete])
 
   const q = search.toLowerCase().trim()
-  const items = useMemo(() => locked.filter(k => {
-    if (justUnlocked.has(k.k)) return false
-    if (levels.size > 0 && !levels.has(k.level)) return false
-    if (!q) return true
-    return (
-      k.k.includes(q) ||
-      k.meanings.some(m => m.toLowerCase().includes(q)) ||
-      k.on.some(r => r.toLowerCase().includes(q)) ||
-      k.kun.some(r => r.toLowerCase().includes(q)) ||
-      k.on.some(r => readingMatchesQuery(r, q)) ||
-      k.kun.some(r => readingMatchesQuery(r, q))
-    )
-  }), [locked, justUnlocked, levels, q])
+  const items = useMemo(() => {
+    // Don't filter during animation to avoid blocking the entrance animation
+    if (animating) return []
+    return locked.filter(k => {
+      if (justUnlocked.has(k.k)) return false
+      if (levels.size > 0 && !levels.has(k.level)) return false
+      if (!q) return true
+      return (
+        k.k.includes(q) ||
+        k.meanings.some(m => m.toLowerCase().includes(q)) ||
+        k.on.some(r => r.toLowerCase().includes(q)) ||
+        k.kun.some(r => r.toLowerCase().includes(q)) ||
+        k.on.some(r => readingMatchesQuery(r, q)) ||
+        k.kun.some(r => readingMatchesQuery(r, q))
+      )
+    })
+  }, [locked, justUnlocked, levels, q, animating])
 
   function toggleLevel(l: JLPTLevel) {
     setLevels(prev => {
@@ -104,7 +116,7 @@ export default function AddN3({ locked, onUnlock, onRemove, onClose, onStarWord,
             <path d="M15 18l-6-6 6-6"/>
           </svg>
         </motion.button>
-        <h1 style={{ fontSize: 30, fontWeight: 700, color: 'var(--text)', lineHeight: '36px', marginTop: 6 }}>Añadir Kanji</h1>
+        <h1 style={{ fontSize: 30, fontWeight: 700, color: 'var(--text)', lineHeight: '36px', marginTop: 6 }}>Añadir kanji</h1>
       </div>
 
       {/* Search */}
@@ -169,7 +181,22 @@ export default function AddN3({ locked, onUnlock, onRemove, onClose, onStarWord,
         className="scroll flex-1"
         style={{ background: '#F4F4F1', touchAction: 'pan-y' }}
       >
-        {items.length === 0 ? (
+        {!loadingComplete ? (
+          <div className="flex flex-col items-center py-20" style={{ color: 'var(--text3)' }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: 16,
+              background: '#e5e5e2',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: 14,
+            }}>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--text3)', animation: 'spin 1s linear infinite' }}>
+                <circle cx="12" cy="12" r="10" strokeDasharray="60" strokeDashoffset="0" opacity="0.3" />
+                <circle cx="12" cy="12" r="10" strokeDasharray="15 60" strokeDashoffset="0" strokeLinecap="round" />
+              </svg>
+            </div>
+            <p style={{ fontSize: 14, color: 'var(--text3)' }}>Cargando kanjis...</p>
+          </div>
+        ) : items.length === 0 ? (
           <div className="flex flex-col items-center py-20" style={{ color: 'var(--text3)' }}>
             <div style={{
               width: 56, height: 56, borderRadius: 16,

@@ -208,7 +208,7 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
       </AnimatePresence>
 
       {/* AddN3 screen */}
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {showAddN3 && (
           <AddN3
             locked={lockedAll}
