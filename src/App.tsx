@@ -204,7 +204,7 @@ export default function App() {
         style={{
           background: 'var(--surface)',
           borderColor: 'var(--border)',
-          paddingBottom: 'env(safe-area-inset-bottom)',
+          // paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
         {tabs.map(({ id, label, Icon }) => (

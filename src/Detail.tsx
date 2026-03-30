@@ -113,7 +113,6 @@ function WordSheet({ word, onClose, isStarredWord, isStarredKanji, onStarWord, o
           background: '#F4F4F1',
           borderRadius: '20px 20px 0 0',
           maxHeight: '75%',
-          paddingBottom: 'env(safe-area-inset-bottom)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -448,7 +447,6 @@ export default function Detail({
               style={{
                 background: '#F4F4F1',
                 borderRadius: '20px 20px 0 0',
-                paddingBottom: 'env(safe-area-inset-bottom)',
                 overflow: 'hidden',
               }}
               initial={{ y: '100%' }}
