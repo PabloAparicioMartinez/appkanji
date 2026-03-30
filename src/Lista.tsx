@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import type { Kanji, JLPTLevel } from './types'
 import Detail from './Detail'
-import AddN3 from './AddN3'
+import AddKanji from './AddKanji'
 import { readingMatchesQuery } from './kanaToRomaji'
 
 interface Props {
@@ -74,7 +74,8 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
           <button
             onClick={() => setShowAddN3(true)}
             className="w-9 h-9 rounded-full flex items-center justify-center press"
-            style={{ background: '#3a3a3c' }}
+            style={{ background: '#1c1c1e' }}
+            // style={{ background: '#3a3a3c' }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
               <path d="M12 5v14M5 12h14"/>
@@ -109,7 +110,7 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
       {/* Level filters */}
       <div
         className="px-4 py-3"
-        style={{ background: '#F4F4F1', borderBottom: '1px solid var(--border)', display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}
+        style={{ background: '#F4F4F1', display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}
       >
         {/* Star filter */}
         <button
@@ -210,7 +211,7 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
       {/* AddN3 screen */}
       <AnimatePresence initial={false}>
         {showAddN3 && (
-          <AddN3
+          <AddKanji
             locked={lockedAll}
             onUnlock={onUnlock}
             onRemove={onRemove}
@@ -237,7 +238,7 @@ function KanjiRow({ kanji, onClick }: { kanji: Kanji; onClick: () => void }) {
       {/* Full-height level stripe flush to left edge */}
       <div style={{
         position: 'absolute', top: 0, left: 0, bottom: 0,
-        width: 6, background: stripe,
+        width: 6, background: stripe, opacity: 0.8,
       }} />
 
       {/* Kanji */}

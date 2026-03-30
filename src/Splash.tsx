@@ -6,7 +6,7 @@ export default function Splash({ onDone }: { onDone: () => void }) {
 
   useEffect(() => {
     const timer = setTimeout(() => setShouldExit(true), 2000)
-    const done = setTimeout(onDone, 2500)
+    const done = setTimeout(onDone, 2000)
     return () => {
       clearTimeout(timer)
       clearTimeout(done)
@@ -20,20 +20,22 @@ export default function Splash({ onDone }: { onDone: () => void }) {
       initial={{ opacity: 1 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.4, ease: 'easeInOut' }}
+      transition={{ duration: 0.5, ease: 'easeInOut' }}
     >
       <motion.span
         className="font-jp-serif"
         style={{
-          fontSize: 28,
+          fontSize: 48,
+          fontWeight: 500,
           color: 'var(--text)',
           lineHeight: 1,
         }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.2, duration: 0.4 }}
+        transition={{ delay: 0.2, duration: 0.5 }}
       >
-        日本語学習
+        字
+        {/* 日本語学習 */}
       </motion.span>
     </motion.div>
   )

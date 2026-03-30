@@ -53,7 +53,7 @@ function WordRow({ word, onClick, onStar, starred }: {
       style={{ background: '#F4F4F1' }}
       onClick={onClick}
     >
-      <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 6, background: lc.main }} />
+      <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 6, background: lc.main, opacity: 0.8 }} />
       <div className="font-jp-serif flex-shrink-0"
         style={{ fontSize: 22, lineHeight: 1, paddingLeft: 16, paddingRight: 10, color: 'var(--text)', whiteSpace: 'nowrap' }}>
         {word.w}
@@ -129,7 +129,7 @@ function WordSheet({ word, onClose, isStarredWord, isStarredKanji, onStarWord, o
 
         {/* Word header */}
         <div className="flex items-center relative" style={{ background: '#F4F4F1' }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 6, background: LEVEL_COLORS[word.l].main }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 6, background: LEVEL_COLORS[word.l].main, opacity: 0.8 }} />
           <div className="font-jp-serif flex-shrink-0"
             style={{ fontSize: 38, lineHeight: 1, paddingLeft: 16, paddingRight: 10, paddingTop: 16, paddingBottom: 16, color: 'var(--text)', whiteSpace: 'nowrap' }}>
             {word.w}
@@ -179,7 +179,7 @@ function WordSheet({ word, onClose, isStarredWord, isStarredKanji, onStarWord, o
                 const kStarred = isStarredKanji?.(k.k)
                 return (
                   <div key={k.k} className="flex items-center relative" style={{ background: '#F4F4F1' }}>
-                    <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 6, background: lc.main }} />
+                    <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 6, background: lc.main, opacity: 0.8 }} />
                     <div className="font-jp-serif text-center flex-shrink-0"
                       style={{ fontSize: 34, lineHeight: 1, width: 64, paddingLeft: 16, color: 'var(--text)' }}>
                       {k.k}

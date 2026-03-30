@@ -202,6 +202,7 @@ export default function App() {
         style={{
           background: 'var(--surface)',
           borderColor: 'var(--border)',
+          paddingBottom: '8px',
           // paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >

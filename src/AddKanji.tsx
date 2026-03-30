@@ -147,7 +147,7 @@ export default function AddKanji({ locked, onUnlock, onRemove, onClose, onStarWo
       {/* Level filters */}
       <div
         className="px-4 py-3"
-        style={{ background: '#F4F4F1', borderBottom: '1px solid var(--border)', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}
+        style={{ background: '#F4F4F1', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}
       >
         {(['N5', 'N4', 'N3', 'N2', 'N1'] as const).map(l => {
           const c = LEVEL_COLORS[l]
@@ -248,7 +248,7 @@ function AddKanjiRow({ kanji, onClick }: { kanji: Kanji; onClick: () => void }) 
       {/* Level stripe */}
       <div style={{
         position: 'absolute', top: 0, left: 0, bottom: 0,
-        width: 6, background: LEVEL_COLORS[kanji.level]?.stripe ?? 'var(--n3)',
+        width: 6, background: LEVEL_COLORS[kanji.level]?.stripe ?? 'var(--n3)', opacity: 0.8,
       }} />
 
       {/* Kanji */}

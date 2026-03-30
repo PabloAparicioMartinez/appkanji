@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { SessionItem, JLPTLevel, PracticeMode, ItemResult } from './types'
+import { KANJI } from './kanji'
 
 const IOS   = { type: 'tween' as const, duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
 const SHEET = { type: 'tween' as const, duration: 0.24, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
@@ -9,6 +10,11 @@ interface FieldResult {
   autoCorrect: boolean
   expected: string
   examples?: { word: string; furigana: string; meaning: string }[]
+}
+
+interface SessionResult {
+  item: SessionItem
+  correct: boolean
 }
 
 interface Props {
@@ -46,6 +52,7 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
   const meanRef        = useRef<HTMLInputElement>(null)
   const furiRef        = useRef<HTMLInputElement>(null)
   const itemResultsRef = useRef<ItemResult[]>([])
+  const sessionResultsRef = useRef<SessionResult[]>([])
 
   useEffect(() => {
     setIdx(0)
@@ -59,6 +66,7 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
     if (meanRef.current) meanRef.current.value = ''
     if (furiRef.current) furiRef.current.value = ''
     itemResultsRef.current = []
+    sessionResultsRef.current = []
     setTimeout(() => (mode === 'A' ? meanRef : furiRef).current?.focus(), 100)
   }, [session])
 
@@ -116,6 +124,7 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
     const item = session[idx]
     const key = item.type === 'A' ? (item.kanji?.k ?? '') : (item.word?.w ?? '')
     itemResultsRef.current.push({ key, type: item.type, correct: cardCorrect })
+    sessionResultsRef.current.push({ item, correct: cardCorrect })
 
     if (idx + 1 >= session.length) {
       onSessionResult?.(itemResultsRef.current)
@@ -170,30 +179,215 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
           key="results"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="flex flex-col items-center justify-center h-full px-8 text-center"
-          style={{ gap: 16 }}
+          className="flex flex-col h-full"
+          style={{ background: 'var(--bg)' }}
         >
-          <div style={{ fontSize: 64 }}>{emoji}</div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text)' }}>
-            {pct >= 80 ? '¡Excelente!' : pct >= 50 ? '¡Buen trabajo!' : '¡Sigue practicando!'}
-          </div>
-          <div style={{ fontSize: 18, color: 'var(--text2)' }}>
-            {correct} de {session.length} correctas ({pct}%)
-          </div>
-          <button
-            onClick={onRestart}
-            className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold press"
-            style={{ background: '#3a3a3c', fontFamily: 'inherit', marginTop: 16 }}
+          {/* Header */}
+          <div
+            className="px-4"
+            style={{
+              paddingTop: 'calc(1rem + env(safe-area-inset-top))',
+              paddingBottom: '1rem',
+              background: 'var(--bg)',
+            }}
           >
-            Otra sesión
-          </button>
-          <button
-            onClick={onClose}
-            className="w-full py-4 rounded-2xl text-[16px] press"
-            style={{ background: '#e5e5e2', color: 'var(--text)', border: 'none', fontFamily: 'inherit' }}
+            <h1 style={{ fontSize: 28, fontWeight: 700, color: 'var(--text)', lineHeight: '36px', marginBottom: 8 }}>
+              Resultado
+            </h1>
+            <div style={{ fontSize: 56, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
+              {pct}%
+            </div>
+          </div>
+
+          {/* Scrollable content */}
+          <div className="scroll flex-1" style={{ display: 'flex', flexDirection: 'column', paddingBottom: 20 }}>
+            {/* Correctas section */}
+            {sessionResultsRef.current.filter(r => r.correct).length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '12px 16px', background: 'var(--bg)' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, background: '#3a3a3c', color: '#fff', display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8, width: 'fit-content' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                    Correctas ({sessionResultsRef.current.filter(r => r.correct).length})
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  {sessionResultsRef.current.filter(r => r.correct).map((sr, i) => {
+                    const item = sr.item
+                    if (item.type === 'A' && item.kanji) {
+                      const k = item.kanji
+                      const stripe = { N5: 'var(--n5)', N4: 'var(--n4)', N3: 'var(--n3)', N2: 'var(--n2)', N1: 'var(--n1)' }[k.level]
+                      return (
+                        <div
+                          key={i}
+                          className="flex items-center row-press cursor-pointer relative"
+                          style={{ background: 'var(--bg)' }}
+                        >
+                          <div style={{
+                            position: 'absolute', top: 0, left: 0, bottom: 0,
+                            width: 4, background: stripe, opacity: 0.8,
+                          }} />
+                          <div className="font-jp-serif text-center flex-shrink-0"
+                            style={{ fontSize: 34, lineHeight: 1, width: 64, paddingLeft: 16, color: 'var(--text)' }}>
+                            {k.k}
+                          </div>
+                          <div className="flex-1 min-w-0 py-2 pr-3" style={{ paddingLeft: 10 }}>
+                            <div style={{ fontSize: 15, color: 'var(--text)' }} className="truncate">
+                              {k.meanings.join(', ')}
+                            </div>
+                            <div className="flex items-center flex-wrap gap-x-3 mt-1" style={{ fontSize: 12, color: 'var(--text3)' }}>
+                              {k.kun.length > 0 && (
+                                <span>
+                                  <span style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em', marginRight: 3 }}>kun</span>
+                                  <span style={{ color: 'var(--text2)' }}>{k.kun.slice(0, 2).join('・')}</span>
+                                </span>
+                              )}
+                              {k.on.length > 0 && (
+                                <span>
+                                  <span style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em', marginRight: 3 }}>on</span>
+                                  <span style={{ color: 'var(--text2)' }}>{k.on.slice(0, 2).join('・')}</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    } else if (item.type === 'B' && item.word) {
+                      const w = item.word
+                      return (
+                        <div
+                          key={i}
+                          className="flex items-center row-press cursor-pointer relative"
+                          style={{ background: 'var(--bg)' }}
+                        >
+                          <div style={{
+                            position: 'absolute', top: 0, left: 0, bottom: 0,
+                            width: 4, background: 'var(--n5)',
+                          }} />
+                          <div className="flex-1 min-w-0 py-2 px-3" style={{ paddingLeft: 12 }}>
+                            <div style={{ fontSize: 15, color: 'var(--text)' }} className="truncate">
+                              {w.w}
+                            </div>
+                            <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 4 }}>
+                              {w.f}
+                            </div>
+                            <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+                              {w.m}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    }
+                    return null
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Fallidas section */}
+            {sessionResultsRef.current.filter(r => !r.correct).length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', marginTop: sessionResultsRef.current.filter(r => r.correct).length > 0 ? 12 : 0 }}>
+                <div style={{ padding: '12px 16px', background: 'var(--bg)' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, background: '#e5e5e2', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8, width: 'fit-content' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    Fallidas ({sessionResultsRef.current.filter(r => !r.correct).length})
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0, opacity: 0.6 }}>
+                  {sessionResultsRef.current.filter(r => !r.correct).map((sr, i) => {
+                    const item = sr.item
+                    if (item.type === 'A' && item.kanji) {
+                      const k = item.kanji
+                      const stripe = { N5: 'var(--n5)', N4: 'var(--n4)', N3: 'var(--n3)', N2: 'var(--n2)', N1: 'var(--n1)' }[k.level]
+                      return (
+                        <div
+                          key={i}
+                          className="flex items-center row-press cursor-pointer relative"
+                          style={{ background: 'var(--bg)' }}
+                        >
+                          <div style={{
+                            position: 'absolute', top: 0, left: 0, bottom: 0,
+                            width: 4, background: stripe, opacity: 0.8,
+                          }} />
+                          <div className="font-jp-serif text-center flex-shrink-0"
+                            style={{ fontSize: 34, lineHeight: 1, width: 64, paddingLeft: 16, color: 'var(--text)' }}>
+                            {k.k}
+                          </div>
+                          <div className="flex-1 min-w-0 py-2 pr-3" style={{ paddingLeft: 10 }}>
+                            <div style={{ fontSize: 15, color: 'var(--text)' }} className="truncate">
+                              {k.meanings.join(', ')}
+                            </div>
+                            <div className="flex items-center flex-wrap gap-x-3 mt-1" style={{ fontSize: 12, color: 'var(--text3)' }}>
+                              {k.kun.length > 0 && (
+                                <span>
+                                  <span style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em', marginRight: 3 }}>kun</span>
+                                  <span style={{ color: 'var(--text2)' }}>{k.kun.slice(0, 2).join('・')}</span>
+                                </span>
+                              )}
+                              {k.on.length > 0 && (
+                                <span>
+                                  <span style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em', marginRight: 3 }}>on</span>
+                                  <span style={{ color: 'var(--text2)' }}>{k.on.slice(0, 2).join('・')}</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    } else if (item.type === 'B' && item.word) {
+                      const w = item.word
+                      return (
+                        <div
+                          key={i}
+                          className="flex items-center row-press cursor-pointer relative"
+                          style={{ background: 'var(--bg)' }}
+                        >
+                          <div style={{
+                            position: 'absolute', top: 0, left: 0, bottom: 0,
+                            width: 4, background: 'var(--n1)',
+                          }} />
+                          <div className="flex-1 min-w-0 py-2 px-3" style={{ paddingLeft: 12 }}>
+                            <div style={{ fontSize: 15, color: 'var(--text)' }} className="truncate">
+                              {w.w}
+                            </div>
+                            <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 4 }}>
+                              {w.f}
+                            </div>
+                            <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+                              {w.m}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    }
+                    return null
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer button */}
+          <div
+            style={{
+              padding: 16,
+              paddingBottom: 'calc(1.2rem)',
+              // paddingBottom: `calc(16px + env(safe-area-inset-bottom))`,
+              background: 'var(--bg)',
+            }}
           >
-            Volver
-          </button>
+            <button
+              onClick={onClose}
+              className="w-full py-4 rounded-xl text-white text-[16px] font-semibold press"
+              style={{
+                background: '#3a3a3c',
+                fontFamily: 'inherit',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              Salir
+            </button>
+          </div>
         </motion.div>
       ) : (
         /* ── SESSION ── */
@@ -225,7 +419,7 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
               }}
             >
               <motion.button
-                whileTap={{ scale: 0.88 }}
+                whileTap={{ backgroundColor: '#d0d0cd' }}
                 onClick={() => setShowStopConfirm(true)}
                 className="w-9 h-9 rounded-full flex items-center justify-center press"
                 style={{ background: '#e5e5e2' }}
@@ -317,7 +511,7 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
               <motion.button
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: canProceed ? 1 : 0.35, y: 0 }}
-                whileTap={{ opacity: canProceed ? 0.75 : 0.35 }}
+                whileTap={{ backgroundColor: canProceed ? '#2a2a2c' : '#3a3a3c' }}
                 onClick={canProceed ? nextCard : undefined}
                 className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold"
                 style={{
