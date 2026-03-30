@@ -35,7 +35,7 @@ function Badge({ level }: { level: JLPTLevel }) {
       background: c.main, color: '#fff',
       borderRadius: 20, padding: '5px 14px',
       fontSize: 12, fontWeight: 600, letterSpacing: '0.04em',
-      flexShrink: 0,
+      flexShrink: 0, opacity: 0.55,
     }}>
       {level}
     </span>

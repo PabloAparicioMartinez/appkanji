@@ -8,7 +8,7 @@ const SHEET = { type: 'tween' as const, duration: 0.24, ease: [0.25, 0.46, 0.45,
 interface FieldResult {
   autoCorrect: boolean
   expected: string
-  example?: { word: string; furigana: string; meaning: string }
+  examples?: { word: string; furigana: string; meaning: string }[]
 }
 
 interface Props {
@@ -80,12 +80,13 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
       const onOk   = k.on.length  === 0 || k.on.some(r  => norm(r) === norm(toKatakana(onVal)))
 
       const onReadingsHira = k.on.map(r => toHiragana(r).toLowerCase())
-      const onWord = k.words.find(w => onReadingsHira.some(r => w.f.toLowerCase().includes(r))) ?? k.words[0]
-      const onExample = onWord ? { word: onWord.w, furigana: onWord.f, meaning: onWord.m } : undefined
+      const onWords = k.words.filter(w => onReadingsHira.some(r => w.f.toLowerCase().includes(r))).slice(0, 3)
+      const fallback = onWords.length > 0 ? onWords : k.words.slice(0, 3)
+      const onExamples = fallback.map(w => ({ word: w.w, furigana: w.f, meaning: w.m }))
 
       fieldResults.push({ autoCorrect: meanOk, expected: k.meanings.join(', ') })
       fieldResults.push({ autoCorrect: kunOk,  expected: k.kun.join('、') || '-' })
-      fieldResults.push({ autoCorrect: onOk,   expected: k.on.join('、')  || '—', example: onExample })
+      fieldResults.push({ autoCorrect: onOk,   expected: k.on.join('、')  || '—', examples: onExamples.length > 0 ? onExamples : undefined })
 
     } else if (item.type === 'B' && item.word) {
       const w = item.word
@@ -296,7 +297,7 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
           >
             {!answered ? (
               <motion.button
-                whileTap={{ opacity: 0.75 }}
+                whileTap={{ backgroundColor: '#2a2a2c' }}
                 onClick={checkAnswer}
                 className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold"
                 style={{ background: '#3a3a3c', fontFamily: 'inherit', border: 'none', cursor: 'pointer' }}
@@ -450,7 +451,7 @@ function FieldInput({
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                 Correcto
               </span>
-              {result.example && <WordExample example={result.example} />}
+              {result.examples?.map((ex, i) => <WordExample key={i} example={ex} />)}
             </>
           ) : (
             <>
@@ -458,10 +459,11 @@ function FieldInput({
                 <span style={{ fontSize: 10, letterSpacing: '0.05em', marginRight: 4 }}>Respuesta:</span>
                 <span style={{ color: 'var(--text2)' }}>{result.expected}</span>
               </span>
-              {result.example && <WordExample example={result.example} />}
+              {result.examples?.map((ex, i) => <WordExample key={i} example={ex} />)}
               {!isResolved ? (
                 <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                  <button
+                  <motion.button
+                    whileTap={{ backgroundColor: '#2a2a2c' }}
                     onClick={() => onSelfEval?.(true)}
                     style={{
                       flex: 1, padding: '8px 0', borderRadius: 10,
@@ -473,8 +475,9 @@ function FieldInput({
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                     Correcto
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ backgroundColor: '#d0d0cd' }}
                     onClick={() => onSelfEval?.(false)}
                     style={{
                       flex: 1, padding: '8px 0', borderRadius: 10,
@@ -486,7 +489,7 @@ function FieldInput({
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
                     Incorrecto
-                  </button>
+                  </motion.button>
                 </div>
               ) : (
                 <span style={{ fontSize: 13, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -521,7 +524,7 @@ function LevelBadge({ level }: { level: JLPTLevel }) {
     N5: 'var(--n5)', N4: 'var(--n4)', N3: 'var(--n3)', N2: 'var(--n2)', N1: 'var(--n1)',
   }
   return (
-    <span style={{ background: colors[level], color: '#fff', fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20 }}>
+    <span style={{ background: colors[level], color: '#fff', fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, opacity: 0.55 }}>
       {level}
     </span>
   )

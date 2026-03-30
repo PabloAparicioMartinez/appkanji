@@ -160,11 +160,10 @@ export default function App() {
   ]
 
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100dvh + env(safe-area-inset-top))', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div className="flex flex-col" style={{ height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
       <AnimatePresence>
         {!splashDone && <Splash onDone={() => setSplashDone(true)} />}
       </AnimatePresence>
-
       {/* Main content */}
       <div className="flex-1 overflow-hidden relative">
         <AnimatePresence initial={false}>
