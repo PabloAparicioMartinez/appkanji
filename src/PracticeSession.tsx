@@ -90,7 +90,17 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
       const meanOk = norm(meanVal).length > 0 && k.meanings.some(m =>
         norm(m).includes(norm(meanVal)) || norm(meanVal).includes(norm(m))
       )
-      const kunOk  = k.kun.length === 0 ? norm(kunVal) === '-' : k.kun.some(r => norm(r) === norm(kunVal))
+      const kunOk = k.kun.length === 0
+        ? norm(kunVal) === '-'
+        : k.kun.some(r => {
+            const normalized = norm(r)
+            const normalizedVal = norm(kunVal)
+            // Exact match: 'まな.ぶ' === 'まな.ぶ'
+            if (normalized === normalizedVal) return true
+            // Accept kun without okurigana: 'まなぶ' === 'まな' when reading is 'まな.ぶ'
+            const kunPart = normalized.split('.')[0]
+            return normalizedVal === kunPart
+          })
       const onOk   = k.on.length  === 0 || k.on.some(r  => norm(r) === norm(toKatakana(onVal)))
 
       const onReadingsHira = k.on.map(r => toHiragana(r).toLowerCase())

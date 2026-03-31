@@ -4,6 +4,7 @@ import type { Kanji, JLPTLevel } from './types'
 import Detail from './Detail'
 import AddKanji from './AddKanji'
 import { readingMatchesQuery, hiraganaToKatakana, katakanaToHiragana } from './kanaToRomaji'
+import { KunReadingList } from './KunReading'
 
 interface Props {
   visible: Kanji[]
@@ -266,7 +267,9 @@ function KanjiRow({ kanji, onClick }: { kanji: Kanji; onClick: () => void }) {
           {kanji.kun.length > 0 && (
             <span>
               <span style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em', marginRight: 3 }}>kun</span>
-              <span style={{ color: 'var(--text2)' }}>{kanji.kun.slice(0, 2).join('・')}</span>
+              <span style={{ color: 'var(--text2)' }}>
+                <KunReadingList readings={kanji.kun} limit={2} />
+              </span>
             </span>
           )}
           {kanji.on.length > 0 && (

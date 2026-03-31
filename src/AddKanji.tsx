@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import type { Kanji, JLPTLevel } from './types'
 import Detail from './Detail'
 import { readingMatchesQuery, hiraganaToKatakana, katakanaToHiragana } from './kanaToRomaji'
+import { KunReadingList } from './KunReading'
 
 const LEVEL_COLORS: Record<JLPTLevel, { color: string; stripe: string }> = {
   N5: { color: 'var(--n5)', stripe: 'var(--n5)' },
@@ -268,7 +269,9 @@ function AddKanjiRow({ kanji, onClick }: { kanji: Kanji; onClick: () => void }) 
           {kanji.kun.length > 0 && (
             <span>
               <span style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em', marginRight: 3 }}>kun</span>
-              <span style={{ color: 'var(--text2)' }}>{kanji.kun.slice(0, 2).join('・')}</span>
+              <span style={{ color: 'var(--text2)' }}>
+                <KunReadingList readings={kanji.kun} limit={2} />
+              </span>
             </span>
           )}
           {kanji.on.length > 0 && (

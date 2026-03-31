@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Kanji, JLPTLevel, CompoundWord } from './types'
 import { KANJI } from './kanji'
+import { KunReadingList } from './KunReading'
 
 interface Props {
   kanji: Kanji
@@ -193,7 +194,9 @@ function WordSheet({ word, onClose, isStarredWord, isStarredKanji, onStarWord, o
                         {k.kun.length > 0 && (
                           <span>
                             <span style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em', marginRight: 3 }}>kun</span>
-                            <span style={{ color: 'var(--text2)' }}>{k.kun.slice(0, 2).join('・')}</span>
+                            <span style={{ color: 'var(--text2)' }}>
+                              <KunReadingList readings={k.kun} limit={2} />
+                            </span>
                           </span>
                         )}
                         {k.on.length > 0 && (
@@ -390,7 +393,7 @@ export default function Detail({
                 KUN
               </span>
               <span style={{ fontSize: 18, color: 'var(--text)', letterSpacing: '0.04em' }}>
-                {kanji.kun.length === 0 ? '—' : kanji.kun.join('・')}
+                {kanji.kun.length === 0 ? '—' : <KunReadingList readings={kanji.kun} />}
               </span>
             </div>
             <div className="flex items-baseline gap-3">
