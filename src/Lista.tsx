@@ -3,7 +3,7 @@ import { AnimatePresence } from 'framer-motion'
 import type { Kanji, JLPTLevel } from './types'
 import Detail from './Detail'
 import AddKanji from './AddKanji'
-import { readingMatchesQuery } from './kanaToRomaji'
+import { readingMatchesQuery, hiraganaToKatakana, katakanaToHiragana } from './kanaToRomaji'
 
 interface Props {
   visible: Kanji[]
@@ -42,6 +42,8 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
       k.meanings.some(m => m.toLowerCase().includes(q)) ||
       k.on.some(r => r.toLowerCase().includes(q)) ||
       k.kun.some(r => r.toLowerCase().includes(q)) ||
+      k.on.some(r => r.includes(hiraganaToKatakana(q))) ||
+      k.kun.some(r => r.includes(katakanaToHiragana(q))) ||
       k.on.some(r => readingMatchesQuery(r, q)) ||
       k.kun.some(r => readingMatchesQuery(r, q))
     )
@@ -179,7 +181,15 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
                 <path d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607z"/>
               </svg>
             </div>
-            <p style={{ fontSize: 14, color: 'var(--text3)' }}>No hay kanjis de este nivel en tu lista</p>
+            <p style={{ fontSize: 14, color: 'var(--text3)' }}>
+              {onlyStarred && levels.size > 0
+                ? `No hay kanjis importantes de ${levels.size === 1 ? 'este nivel' : 'estos niveles'}`
+                : onlyStarred
+                ? 'No hay kanjis marcados como importantes'
+                : levels.size > 1
+                ? 'No hay kanjis de estos niveles en tu lista'
+                : 'No hay kanjis de este nivel en tu lista'}
+            </p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

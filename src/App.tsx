@@ -30,10 +30,23 @@ function saveMap(key: string, m: Map<string, number>) {
 }
 
 // ── Icons ─────────────────────────────────────────────────────────────────
-function GridIcon({ active }: { active: boolean }) {
+function ListIcon({ active: _ }: { active: boolean }) {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24"
-      fill={active ? 'currentColor' : 'none'}
+      fill="currentColor"
+      stroke="currentColor" strokeWidth="1.7"
+      strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="3" rx="0.75"/>
+      <rect x="3" y="10.5" width="18" height="3" rx="0.75"/>
+      <rect x="3" y="18" width="18" height="3" rx="0.75"/>
+    </svg>
+  )
+}
+
+function GridIcon({ active: _ }: { active: boolean }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24"
+      fill="currentColor"
       stroke="currentColor" strokeWidth="1.7"
       strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="3" width="7" height="7" rx="1.5"/>
@@ -44,16 +57,6 @@ function GridIcon({ active }: { active: boolean }) {
   )
 }
 
-function StarIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24"
-      fill={active ? 'currentColor' : 'none'}
-      stroke="currentColor" strokeWidth="1.7"
-      strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-    </svg>
-  )
-}
 
 // ── App ───────────────────────────────────────────────────────────────────
 export default function App() {
@@ -155,8 +158,8 @@ export default function App() {
   const lockedAll = KANJI.filter(k => !isUnlocked(k))
 
   const tabs = [
-    { id: 'lista'     as AppScreen, label: 'Mi lista',     Icon: GridIcon },
-    { id: 'practicar' as AppScreen, label: 'Practicar', Icon: StarIcon },
+    { id: 'lista'     as AppScreen, label: 'Mi lista',  Icon: ListIcon },
+    { id: 'practicar' as AppScreen, label: 'Practicar', Icon: GridIcon },
   ]
 
   return (
@@ -190,6 +193,9 @@ export default function App() {
                   weakKanji={weakKanji}
                   weakWords={weakWords}
                   onSessionResult={handleSessionResult}
+                  onStar={starKanji}
+                  onStarWord={starWord}
+                  onRemove={removeKanji}
                 />
             }
           </motion.div>

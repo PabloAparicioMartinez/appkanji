@@ -5,7 +5,7 @@ import App from './App'
 
 // Lock to portrait on supported browsers (Android Chrome, etc.)
 // screen.orientation?.lock?.('portrait').catch(() => {})
-screen.orientation?.lock?.('portrait-primary').catch(() => {})
+// screen.orientation?.lock?.('portrait-primary').catch(() => {})
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -135,7 +135,7 @@ function WordSheet({ word, onClose, isStarredWord, isStarredKanji, onStarWord, o
             {word.w}
           </div>
           <div className="flex-1 min-w-0 py-3 pr-2">
-            <div style={{ fontSize: 15, color: 'var(--text)', fontWeight: 500, fontFamily: 'inherit' }}>{word.m}</div>
+            <div style={{ fontSize: 15, color: 'var(--text)', fontWeight: 500, fontFamily: "'Inter', 'Noto Sans JP', sans-serif" }}>{word.m}</div>
             <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 3 }}>{word.f}</div>
           </div>
           {onStarWord ? (
@@ -326,19 +326,6 @@ export default function Detail({
           </motion.button>
         ) : (onRemove || onStar) && (
           <div className="flex items-center gap-3">
-            {onRemove && (
-              <motion.button
-                whileTap={{ scale: 0.88 }}
-                onClick={() => setShowRemoveConfirm(true)}
-                className="w-9 h-9 rounded-full flex items-center justify-center press"
-                style={{ background: '#e5e5e2' }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-                  style={{ color: 'var(--text)' }}>
-                  <path d="M18 6L6 18M6 6l12 12"/>
-                </svg>
-              </motion.button>
-            )}
             {onStar && (
               <button
                 onClick={() => { onStar(kanji.k); showSnack(isStarred ? `${kanji.k} quitado de "Importantes"` : `${kanji.k} añadido a "Importantes"`) }}
@@ -351,6 +338,19 @@ export default function Detail({
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                 </svg>
               </button>
+            )}
+            {onRemove && (
+              <motion.button
+                whileTap={{ scale: 0.88 }}
+                onClick={() => setShowRemoveConfirm(true)}
+                className="w-9 h-9 rounded-full flex items-center justify-center press"
+                style={{ background: '#e5e5e2' }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+                  style={{ color: 'var(--text)' }}>
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </motion.button>
             )}
           </div>
         )}
@@ -367,6 +367,9 @@ export default function Detail({
           >
             {kanji.k}
           </div>
+          {/* <div style={{ fontSize: 15, color: 'var(--text)', letterSpacing: '0.03em' }}>
+            {kanji.meanings.join(' · ')}
+          </div> */}
           <span style={{ fontSize: 18, color: 'var(--text)', fontWeight: 300, fontFamily: 'inherit' }}>
             {kanji.meanings.join(' · ')}
           </span>
@@ -387,7 +390,7 @@ export default function Detail({
                 KUN
               </span>
               <span style={{ fontSize: 18, color: 'var(--text)', letterSpacing: '0.04em' }}>
-                {kanji.kun.length === 0 ? <span style={{ color: 'var(--text3)' }}>—</span> : kanji.kun.join('・')}
+                {kanji.kun.length === 0 ? '—' : kanji.kun.join('・')}
               </span>
             </div>
             <div className="flex items-baseline gap-3">
@@ -426,7 +429,7 @@ export default function Detail({
           }
         </div>
 
-        <div style={{ height: 36 }} />
+        <div style={{ height: 18 }} />
       </div>
 
       {/* Remove confirm sheet */}
@@ -463,7 +466,7 @@ export default function Detail({
                   ¿Quitar de mi lista?
                 </div>
                 <div style={{ fontSize: 14, color: 'var(--text3)', lineHeight: 1.4 }}>
-                  {kanji.k} volverá a la pantalla "Añadir kanji".
+                  {kanji.k} volverá a la pantalla "Añadir kanji"
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 14px 20px', gap: 8 }}>

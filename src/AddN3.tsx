@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Kanji, JLPTLevel } from './types'
 import Detail from './Detail'
-import { readingMatchesQuery } from './kanaToRomaji'
+import { readingMatchesQuery, hiraganaToKatakana, katakanaToHiragana } from './kanaToRomaji'
 
 const LEVEL_COLORS: Record<JLPTLevel, { color: string; stripe: string }> = {
   N5: { color: 'var(--n5)', stripe: 'var(--n5)' },
@@ -51,6 +51,8 @@ export default function AddKanji({ locked, onUnlock, onRemove, onClose, onStarWo
         k.meanings.some(m => m.toLowerCase().includes(q)) ||
         k.on.some(r => r.toLowerCase().includes(q)) ||
         k.kun.some(r => r.toLowerCase().includes(q)) ||
+        k.on.some(r => r.includes(hiraganaToKatakana(q))) ||
+        k.kun.some(r => r.includes(katakanaToHiragana(q))) ||
         k.on.some(r => readingMatchesQuery(r, q)) ||
         k.kun.some(r => readingMatchesQuery(r, q))
       )

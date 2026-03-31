@@ -10,6 +10,9 @@ interface Props {
   weakKanji: Set<string>
   weakWords: Set<string>
   onSessionResult: (results: ItemResult[]) => void
+  onStar: (char: string) => void
+  onStarWord: (word: string) => void
+  onRemove: (char: string) => void
 }
 
 type Mode = PracticeMode
@@ -35,7 +38,7 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-export default function Practice({ visible, starredKanji, starredWords, weakKanji, weakWords, onSessionResult }: Props) {
+export default function Practice({ visible, starredKanji, starredWords, weakKanji, weakWords, onSessionResult, onStar, onStarWord, onRemove }: Props) {
   const [mode,        setMode]        = useState<Mode>('A')
   const [levels,      setLevels]      = useState<Set<JLPTLevel>>(new Set())
   const [count,       setCount]       = useState(20)
@@ -326,6 +329,11 @@ export default function Practice({ visible, starredKanji, starredWords, weakKanj
             onClose={() => setShowSession(false)}
             onRestart={startSession}
             onSessionResult={onSessionResult}
+            onStar={onStar}
+            onStarWord={onStarWord}
+            onRemove={onRemove}
+            starredKanji={starredKanji}
+            starredWords={starredWords}
           />
         )}
       </AnimatePresence>

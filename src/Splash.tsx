@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 
 export default function Splash({ onDone }: { onDone: () => void }) {
-  const [shouldExit, setShouldExit] = useState(false)
+  const [, setShouldExit] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => setShouldExit(true), 2000)

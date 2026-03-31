@@ -88,3 +88,11 @@ export function readingMatchesQuery(reading: string, query: string): boolean {
   const romaji = kanaToRomaji(reading.replace(/[.\-・]/g, ''))
   return romaji.includes(query)
 }
+
+export function hiraganaToKatakana(str: string): string {
+  return str.replace(/[\u3041-\u3096]/g, ch => String.fromCharCode(ch.charCodeAt(0) + 0x60))
+}
+
+export function katakanaToHiragana(str: string): string {
+  return str.replace(/[\u30A1-\u30F6]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60))
+}

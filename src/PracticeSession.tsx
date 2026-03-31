@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { SessionItem, JLPTLevel, PracticeMode, ItemResult } from './types'
-import { KANJI } from './kanji'
+import type { SessionItem, JLPTLevel, PracticeMode, ItemResult, Kanji } from './types'
+import Detail from './Detail'
 
 const IOS   = { type: 'tween' as const, duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
 const SHEET = { type: 'tween' as const, duration: 0.24, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
@@ -23,6 +23,11 @@ interface Props {
   onClose: () => void
   onRestart: () => void
   onSessionResult?: (results: ItemResult[]) => void
+  onStar?: (char: string) => void
+  onStarWord?: (word: string) => void
+  onRemove?: (char: string) => void
+  starredKanji?: Set<string>
+  starredWords?: Set<string>
 }
 
 function norm(s: string) {
@@ -37,7 +42,7 @@ function toHiragana(s: string) {
   return s.replace(/[\u30A1-\u30F6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60))
 }
 
-export default function PracticeSession({ session, mode, onClose, onRestart, onSessionResult }: Props) {
+export default function PracticeSession({ session, mode, onClose, onSessionResult, onStar, onStarWord, onRemove, starredKanji, starredWords }: Props) {
   const [phase,    setPhase]    = useState<'session' | 'results'>('session')
   const [idx,      setIdx]      = useState(0)
   const [correct,  setCorrect]  = useState(0)
@@ -46,6 +51,7 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
   const [userEvals, setUserEvals] = useState<(boolean | undefined)[]>([])
   const [animating,       setAnimating]       = useState(true)
   const [showStopConfirm, setShowStopConfirm] = useState(false)
+  const [selectedKanji,   setSelectedKanji]   = useState<Kanji | null>(null)
 
   const onRef          = useRef<HTMLInputElement>(null)
   const kunRef         = useRef<HTMLInputElement>(null)
@@ -143,7 +149,7 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
   }
 
   const item        = session[idx]
-  const progressPct = session.length > 0 ? (idx / session.length) * 100 : 0
+  const progressPct = session.length > 0 ? ((idx + 1) / session.length) * 100 : 0
   const isA         = item?.type === 'A'
 
   const canProceed = answered && results.length > 0 &&
@@ -161,11 +167,10 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
       ]
 
   const pct   = session.length > 0 ? Math.round((correct / session.length) * 100) : 0
-  const emoji = pct >= 80 ? '🎉' : pct >= 50 ? '💪' : '📚'
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex flex-col"
+      className="fixed inset-0 z-50 flex flex-col overflow-hidden"
       style={{ background: '#F4F4F1', pointerEvents: animating ? 'none' : 'auto' }}
       initial={{ x: '100%' }}
       animate={{ x: 0 }}
@@ -173,29 +178,43 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
       transition={IOS}
       onAnimationComplete={() => setAnimating(false)}
     >
-      {phase === 'results' ? (
+      {phase === 'results' && (
         /* ── RESULTS ── */
         <motion.div
           key="results"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex flex-col h-full"
+          className="absolute inset-0 flex flex-col"
           style={{ background: 'var(--bg)' }}
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          transition={IOS}
         >
           {/* Header */}
           <div
             className="px-4"
             style={{
-              paddingTop: 'calc(1rem + env(safe-area-inset-top))',
-              paddingBottom: '1rem',
+              paddingTop: 'calc(1.1rem + env(safe-area-inset-top))',
+              paddingBottom: '1.25rem',
               background: 'var(--bg)',
+              flexShrink: 0,
             }}
           >
-            <h1 style={{ fontSize: 28, fontWeight: 700, color: 'var(--text)', lineHeight: '36px', marginBottom: 8 }}>
+            <h1 style={{ fontSize: 30, fontWeight: 700, color: 'var(--text)', lineHeight: '36px', marginBottom: 20 }}>
               Resultado
             </h1>
-            <div style={{ fontSize: 56, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
-              {pct}%
+
+            {/* Score block */}
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14 }}>
+              <div style={{ fontSize: 56, fontWeight: 700, lineHeight: 1, color: 'var(--text)' }}>
+                {pct}%
+              </div>
+              <div style={{ paddingBottom: 8 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
+                  {correct} de {session.length}
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 0 }}>
+                  correctas
+                </div>
+              </div>
             </div>
           </div>
 
@@ -204,13 +223,15 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
             {/* Correctas section */}
             {sessionResultsRef.current.filter(r => r.correct).length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{ padding: '12px 16px', background: 'var(--bg)' }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, background: '#3a3a3c', color: '#fff', display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8, width: 'fit-content' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-                    Correctas ({sessionResultsRef.current.filter(r => r.correct).length})
-                  </div>
+                <div style={{ padding: '10px 16px 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Correctas
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#fff', background: '#3a3a3c', borderRadius: 20, padding: '1px 7px' }}>
+                    {sessionResultsRef.current.filter(r => r.correct).length}
+                  </span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {sessionResultsRef.current.filter(r => r.correct).map((sr, i) => {
                     const item = sr.item
                     if (item.type === 'A' && item.kanji) {
@@ -221,10 +242,11 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
                           key={i}
                           className="flex items-center row-press cursor-pointer relative"
                           style={{ background: 'var(--bg)' }}
+                          onClick={() => setSelectedKanji(k)}
                         >
                           <div style={{
                             position: 'absolute', top: 0, left: 0, bottom: 0,
-                            width: 4, background: stripe, opacity: 0.8,
+                            width: 6, background: stripe, opacity: 0.8,
                           }} />
                           <div className="font-jp-serif text-center flex-shrink-0"
                             style={{ fontSize: 34, lineHeight: 1, width: 64, paddingLeft: 16, color: 'var(--text)' }}>
@@ -261,17 +283,14 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
                         >
                           <div style={{
                             position: 'absolute', top: 0, left: 0, bottom: 0,
-                            width: 4, background: 'var(--n5)',
+                            width: 6, background: 'var(--text3)',
                           }} />
-                          <div className="flex-1 min-w-0 py-2 px-3" style={{ paddingLeft: 12 }}>
+                          <div className="flex-1 min-w-0 py-2 pr-3" style={{ paddingLeft: 22 }}>
                             <div style={{ fontSize: 15, color: 'var(--text)' }} className="truncate">
                               {w.w}
                             </div>
-                            <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 4 }}>
-                              {w.f}
-                            </div>
-                            <div style={{ fontSize: 12, color: 'var(--text3)' }}>
-                              {w.m}
+                            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>
+                              {w.f}　{w.m}
                             </div>
                           </div>
                         </div>
@@ -285,14 +304,16 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
 
             {/* Fallidas section */}
             {sessionResultsRef.current.filter(r => !r.correct).length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', marginTop: sessionResultsRef.current.filter(r => r.correct).length > 0 ? 12 : 0 }}>
-                <div style={{ padding: '12px 16px', background: 'var(--bg)' }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, background: '#e5e5e2', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8, width: 'fit-content' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                    Fallidas ({sessionResultsRef.current.filter(r => !r.correct).length})
-                  </div>
+              <div style={{ display: 'flex', flexDirection: 'column', marginTop: sessionResultsRef.current.filter(r => r.correct).length > 0 ? 16 : 0 }}>
+                <div style={{ padding: '10px 16px 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Fallidas
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)', background: '#e5e5e2', borderRadius: 20, padding: '1px 7px' }}>
+                    {sessionResultsRef.current.filter(r => !r.correct).length}
+                  </span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 0, opacity: 0.6 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, opacity: 0.5 }}>
                   {sessionResultsRef.current.filter(r => !r.correct).map((sr, i) => {
                     const item = sr.item
                     if (item.type === 'A' && item.kanji) {
@@ -303,10 +324,11 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
                           key={i}
                           className="flex items-center row-press cursor-pointer relative"
                           style={{ background: 'var(--bg)' }}
+                          onClick={() => setSelectedKanji(k)}
                         >
                           <div style={{
                             position: 'absolute', top: 0, left: 0, bottom: 0,
-                            width: 4, background: stripe, opacity: 0.8,
+                            width: 6, background: stripe, opacity: 0.8,
                           }} />
                           <div className="font-jp-serif text-center flex-shrink-0"
                             style={{ fontSize: 34, lineHeight: 1, width: 64, paddingLeft: 16, color: 'var(--text)' }}>
@@ -343,17 +365,14 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
                         >
                           <div style={{
                             position: 'absolute', top: 0, left: 0, bottom: 0,
-                            width: 4, background: 'var(--n1)',
+                            width: 6, background: 'var(--text3)',
                           }} />
-                          <div className="flex-1 min-w-0 py-2 px-3" style={{ paddingLeft: 12 }}>
+                          <div className="flex-1 min-w-0 py-2 pr-3" style={{ paddingLeft: 22 }}>
                             <div style={{ fontSize: 15, color: 'var(--text)' }} className="truncate">
                               {w.w}
                             </div>
-                            <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 4 }}>
-                              {w.f}
-                            </div>
-                            <div style={{ fontSize: 12, color: 'var(--text3)' }}>
-                              {w.m}
+                            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>
+                              {w.f}　{w.m}
                             </div>
                           </div>
                         </div>
@@ -371,13 +390,14 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
             style={{
               padding: 16,
               paddingBottom: 'calc(1.2rem)',
-              // paddingBottom: `calc(16px + env(safe-area-inset-bottom))`,
               background: 'var(--bg)',
+              flexShrink: 0,
             }}
           >
-            <button
+            <motion.button
               onClick={onClose}
-              className="w-full py-4 rounded-xl text-white text-[16px] font-semibold press"
+              whileTap={{ backgroundColor: '#2a2a2c' }}
+              className="w-full py-4 rounded-xl text-white text-[16px] font-semibold"
               style={{
                 background: '#3a3a3c',
                 fontFamily: 'inherit',
@@ -386,10 +406,29 @@ export default function PracticeSession({ session, mode, onClose, onRestart, onS
               }}
             >
               Salir
-            </button>
+            </motion.button>
           </div>
+
+          {/* Detail overlay */}
+          <AnimatePresence>
+            {selectedKanji && (
+              <Detail
+                kanji={selectedKanji}
+                unlocked={true}
+                onBack={() => setSelectedKanji(null)}
+                onUnlock={onRemove ? () => {} : () => {}}
+                onRemove={onRemove}
+                onStar={onStar}
+                onStarWord={onStarWord}
+                isStarred={starredKanji?.has(selectedKanji.k)}
+                isStarredWord={(w: string) => starredWords?.has(w) || false}
+                isStarredKanji={(k: string) => starredKanji?.has(k) || false}
+              />
+            )}
+          </AnimatePresence>
         </motion.div>
-      ) : (
+      )}
+      {phase !== 'results' && (
         /* ── SESSION ── */
         <>
           {/* Nav */}
