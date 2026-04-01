@@ -13,6 +13,7 @@ interface Props {
   onRemove?: (k: string) => void
   onStar?: (k: string) => void
   onStarWord?: (w: string) => void
+  onChangeLevel?: (k: string, newLevel: JLPTLevel) => void
   isStarred?: boolean
   isStarredWord?: (w: string) => boolean
   isStarredKanji?: (k: string) => boolean
@@ -244,13 +245,15 @@ function WordSheet({ word, onClose, isStarredWord, isStarredKanji, onStarWord, o
 
 // ── Detail ──────────────────────────────────────────────────────────────────
 export default function Detail({
-  kanji, unlocked, onBack, onUnlock, onRemove, onStar, onStarWord,
+  kanji, unlocked, onBack, onUnlock, onRemove, onStar, onStarWord, onChangeLevel,
   isStarred, isStarredWord, isStarredKanji,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [selectedWord, setSelectedWord] = useState<CompoundWord | null>(null)
   const [snackbar, setSnackbar] = useState('')
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false)
+  const [showLevelSheet, setShowLevelSheet] = useState(false)
+  const [pendingLevel, setPendingLevel] = useState<JLPTLevel>(kanji.level)
   const [animating, setAnimating] = useState(true)
 
   useEffect(() => {
@@ -327,8 +330,21 @@ export default function Detail({
               <path d="M12 5v14M5 12h14"/>
             </svg>
           </motion.button>
-        ) : (onRemove || onStar) && (
+        ) : (onRemove || onStar || onChangeLevel) && (
           <div className="flex items-center gap-3">
+            {onChangeLevel && (
+              <button
+                onClick={() => { setPendingLevel(kanji.level); setShowLevelSheet(true) }}
+                className="w-9 h-9 rounded-full flex items-center justify-center"
+                style={{ background: '#e5e5e2', border: 'none', cursor: 'pointer' }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                  <path d="M2 17l10 5 10-5"/>
+                  <path d="M2 12l10 5 10-5"/>
+                </svg>
+              </button>
+            )}
             {onStar && (
               <button
                 onClick={() => { onStar(kanji.k); showSnack(isStarred ? `${kanji.k} quitado de "Importantes"` : `${kanji.k} añadido a "Importantes"`) }}
@@ -488,6 +504,96 @@ export default function Detail({
                 <motion.button
                   whileTap={{ backgroundColor: '#d0d0cd' }}
                   onClick={() => setShowRemoveConfirm(false)}
+                  style={{
+                    width: '100%', padding: '14px', borderRadius: 12,
+                    background: '#e5e5e2', color: 'var(--text)',
+                    fontSize: 16, fontWeight: 500, fontFamily: 'inherit',
+                    border: 'none', cursor: 'pointer',
+                  }}
+                >
+                  Cancelar
+                </motion.button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Level change sheet */}
+      <AnimatePresence>
+        {showLevelSheet && (
+          <>
+            <motion.div
+              className="absolute inset-0 z-[80]"
+              style={{ background: 'rgba(0,0,0,0.4)' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              onClick={() => setShowLevelSheet(false)}
+            />
+            <motion.div
+              className="absolute z-[81] left-0 right-0 bottom-0"
+              style={{
+                background: '#F4F4F1',
+                borderRadius: '20px 20px 0 0',
+                overflow: 'hidden',
+              }}
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={SHEET}
+            >
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-1">
+                <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)' }} />
+              </div>
+              <div style={{ padding: '14px 20px 8px', textAlign: 'center' }}>
+                <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>
+                  Cambiar nivel
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '8px 14px 16px', justifyContent: 'center' }}>
+                {(['N5', 'N4', 'N3', 'N2', 'N1'] as JLPTLevel[]).map(lvl => (
+                  <button
+                    key={lvl}
+                    onClick={() => setPendingLevel(lvl)}
+                    style={{
+                      background: pendingLevel === lvl ? LEVEL_COLORS[lvl].main : '#e5e5e2',
+                      color: pendingLevel === lvl ? '#fff' : 'var(--text)',
+                      borderRadius: 20,
+                      padding: '8px 20px',
+                      border: 'none',
+                      fontWeight: pendingLevel === lvl ? 600 : 400,
+                      fontSize: 14,
+                      fontFamily: 'inherit',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {lvl}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 14px 20px', gap: 8 }}>
+                <motion.button
+                  whileTap={{ backgroundColor: LEVEL_COLORS[pendingLevel].main }}
+                  onClick={() => {
+                    onChangeLevel?.(kanji.k, pendingLevel)
+                    setShowLevelSheet(false)
+                    showSnack(`${kanji.k} movido a ${pendingLevel}`)
+                  }}
+                  style={{
+                    width: '100%', padding: '14px', borderRadius: 12,
+                    background: LEVEL_COLORS[pendingLevel].main, color: '#fff',
+                    fontSize: 16, fontWeight: 600, fontFamily: 'inherit',
+                    border: 'none', cursor: 'pointer',
+                  }}
+                >
+                  Confirmar
+                </motion.button>
+                <motion.button
+                  whileTap={{ backgroundColor: '#d0d0cd' }}
+                  onClick={() => setShowLevelSheet(false)}
                   style={{
                     width: '100%', padding: '14px', borderRadius: 12,
                     background: '#e5e5e2', color: 'var(--text)',

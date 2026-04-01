@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node add-rank.cjs)",
+      "Bash(npm run:*)"
+    ]
+  }
+}

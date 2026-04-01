@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { AppScreen, ItemResult } from './types'
+import type { AppScreen, ItemResult, JLPTLevel } from './types'
 import { KANJI } from './kanji'
 import Lista from './Lista'
 import Practice from './Practice'
@@ -26,6 +26,17 @@ function loadMap(key: string): Map<string, number> {
 }
 
 function saveMap(key: string, m: Map<string, number>) {
+  localStorage.setItem(key, JSON.stringify([...m]))
+}
+
+function loadLevelOverrides(key: string): Map<string, JLPTLevel> {
+  try {
+    const raw = localStorage.getItem(key)
+    return new Map(raw ? JSON.parse(raw) : [])
+  } catch { return new Map() }
+}
+
+function saveLevelOverrides(key: string, m: Map<string, JLPTLevel>) {
   localStorage.setItem(key, JSON.stringify([...m]))
 }
 
@@ -74,6 +85,8 @@ export default function App() {
   const [weakWords,     setWeakWords]     = useState<Set<string>>(() => loadSet('weak_words'))
   const [weakKanjiMastery, setWeakKanjiMastery] = useState<Map<string, number>>(() => loadMap('weak_kanji_mastery'))
   const [weakWordsMastery, setWeakWordsMastery] = useState<Map<string, number>>(() => loadMap('weak_words_mastery'))
+  // Custom level overrides
+  const [levelOverrides, setLevelOverrides] = useState<Map<string, JLPTLevel>>(() => loadLevelOverrides('level_overrides'))
 
   const isUnlocked = useCallback((k: { k: string; level: string }) => {
     if (k.level === 'N3' || k.level === 'N2' || k.level === 'N1') return unlockedN3.has(k.k)
@@ -118,6 +131,15 @@ export default function App() {
     })
   }, [])
 
+  const changeLevelKanji = useCallback((char: string, newLevel: JLPTLevel) => {
+    setLevelOverrides(prev => {
+      const next = new Map(prev)
+      next.set(char, newLevel)
+      saveLevelOverrides('level_overrides', next)
+      return next
+    })
+  }, [])
+
   const handleSessionResult = useCallback((results: ItemResult[]) => {
     const newWeakKanji = new Set(weakKanji)
     const newMasteryKanji = new Map(weakKanjiMastery)
@@ -154,8 +176,15 @@ export default function App() {
     setWeakWordsMastery(newMasteryWords)
   }, [weakKanji, weakWords, weakKanjiMastery, weakWordsMastery])
 
-  const visible  = KANJI.filter(isUnlocked)
-  const lockedAll = KANJI.filter(k => !isUnlocked(k))
+  const LEVEL_ORDER: Record<JLPTLevel, number> = { N5: 0, N4: 1, N3: 2, N2: 3, N1: 4 }
+
+  const kanjiWithOverrides = KANJI.map(k =>
+    levelOverrides.has(k.k) ? { ...k, level: levelOverrides.get(k.k)! } : k
+  )
+  const visible = kanjiWithOverrides
+    .filter(isUnlocked)
+    .sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level] || a.rank - b.rank)
+  const lockedAll = kanjiWithOverrides.filter(k => !isUnlocked(k))
 
   const tabs = [
     { id: 'lista'     as AppScreen, label: 'Mi lista',  Icon: ListIcon },
@@ -183,6 +212,7 @@ export default function App() {
                   onRemove={removeKanji}
                   onStar={starKanji}
                   onStarWord={starWord}
+                  onChangeLevel={changeLevelKanji}
                   starredKanji={starredKanji}
                   starredWords={starredWords}
                 />

@@ -14,6 +14,7 @@ interface Props {
   onRemove: (char: string) => void
   onStar: (char: string) => void
   onStarWord: (w: string) => void
+  onChangeLevel?: (char: string, newLevel: JLPTLevel) => void
   starredKanji: Set<string>
   starredWords: Set<string>
 }
@@ -26,7 +27,7 @@ const LEVEL_COLORS: Record<JLPTLevel, { bg: string; color: string; stripe: strin
   N1: { bg: 'var(--n1-bg)', color: 'var(--n1)', stripe: 'var(--n1)' },
 }
 
-export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemove, onStar, onStarWord, starredKanji, starredWords }: Props) {
+export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemove, onStar, onStarWord, onChangeLevel, starredKanji, starredWords }: Props) {
   const [search, setSearch] = useState('')
   const [levels, setLevels] = useState<Set<JLPTLevel>>(new Set())
   const [onlyStarred, setOnlyStarred] = useState(false)
@@ -214,6 +215,7 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
             onRemove={onRemove}
             onStar={onStar}
             onStarWord={onStarWord}
+            onChangeLevel={onChangeLevel}
             isStarred={starredKanji.has(selected.k)}
             isStarredWord={(w: string) => starredWords.has(w)}
             isStarredKanji={(k: string) => starredKanji.has(k)}
