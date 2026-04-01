@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { SessionItem, JLPTLevel, PracticeMode, ItemResult, Kanji } from './types'
 import Detail from './Detail'
+import { KunReadingList } from './KunReading'
 
 const IOS   = { type: 'tween' as const, duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
 const SHEET = { type: 'tween' as const, duration: 0.24, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
@@ -99,6 +100,9 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
             if (normalized === normalizedVal) return true
             // Accept kun without okurigana: 'まなぶ' === 'まな' when reading is 'まな.ぶ'
             const kunPart = normalized.split('.')[0]
+            const okurigana = normalized.split('.')[1] ?? ''
+            // Accept full reading without dot: 'ちいさい' === 'ちい.さい'
+            if (normalizedVal === kunPart + okurigana) return true
             return normalizedVal === kunPart
           })
       const onOk   = k.on.length  === 0 || k.on.some(r  => norm(r) === norm(toKatakana(onVal)))
@@ -109,7 +113,7 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
       const onExamples = fallback.map(w => ({ word: w.w, furigana: w.f, meaning: w.m }))
 
       fieldResults.push({ autoCorrect: meanOk, expected: k.meanings.join(', ') })
-      fieldResults.push({ autoCorrect: kunOk,  expected: k.kun.join('、') || '-' })
+      fieldResults.push({ autoCorrect: kunOk,  expected: k.kun.map(r => r.replace('.', '')).join('、') || '-' })
       fieldResults.push({ autoCorrect: onOk,   expected: k.on.join('、')  || '—', examples: onExamples.length > 0 ? onExamples : undefined })
 
     } else if (item.type === 'B' && item.word) {
@@ -270,7 +274,7 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
                               {k.kun.length > 0 && (
                                 <span>
                                   <span style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em', marginRight: 3 }}>kun</span>
-                                  <span style={{ color: 'var(--text2)' }}>{k.kun.slice(0, 2).join('・')}</span>
+                                  <span style={{ color: 'var(--text2)' }}><KunReadingList readings={k.kun} limit={2} /></span>
                                 </span>
                               )}
                               {k.on.length > 0 && (
@@ -323,7 +327,7 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
                     {sessionResultsRef.current.filter(r => !r.correct).length}
                   </span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, opacity: 0.5 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {sessionResultsRef.current.filter(r => !r.correct).map((sr, i) => {
                     const item = sr.item
                     if (item.type === 'A' && item.kanji) {
@@ -352,7 +356,7 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
                               {k.kun.length > 0 && (
                                 <span>
                                   <span style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em', marginRight: 3 }}>kun</span>
-                                  <span style={{ color: 'var(--text2)' }}>{k.kun.slice(0, 2).join('・')}</span>
+                                  <span style={{ color: 'var(--text2)' }}><KunReadingList readings={k.kun} limit={2} /></span>
                                 </span>
                               )}
                               {k.on.length > 0 && (
@@ -681,6 +685,8 @@ function FieldInput({
         readOnly={answered}
         onKeyDown={e => e.key === 'Enter' && onEnter()}
         className={answered && result && !result.autoCorrect && userEval !== true ? 'shake' : ''}
+        autoCapitalize="none"
+        autoCorrect="off"
         style={{
           width: '100%', padding: '9px 12px',
           borderRadius: 10, border: 'none',
