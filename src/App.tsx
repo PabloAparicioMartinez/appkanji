@@ -132,13 +132,30 @@ export default function App() {
   }, [])
 
   const changeLevelKanji = useCallback((char: string, newLevel: JLPTLevel) => {
+    const k = KANJI.find(x => x.k === char)
+    if (!k) return
+
+    // Determinar si el kanji está desbloqueado actualmente
+    const isCurrentlyUnlocked = k.level === 'N3' || k.level === 'N2' || k.level === 'N1'
+      ? unlockedN3.has(char)
+      : !removedBasic.has(char)
+
+    // Si está desbloqueado y se mueve a N3/N2/N1, añadirlo a unlockedN3
+    if (isCurrentlyUnlocked && (newLevel === 'N3' || newLevel === 'N2' || newLevel === 'N1')) {
+      setUnlockedN3(prev => { const next = new Set(prev); next.add(char); saveSet('unlocked_n3', next); return next })
+    }
+    // Si está desbloqueado, se mueve a N5/N4, y estaba en N3/N2/N1, removerlo de unlockedN3
+    else if (isCurrentlyUnlocked && (newLevel === 'N5' || newLevel === 'N4') && (k.level === 'N3' || k.level === 'N2' || k.level === 'N1')) {
+      setUnlockedN3(prev => { const next = new Set(prev); next.delete(char); saveSet('unlocked_n3', next); return next })
+    }
+
     setLevelOverrides(prev => {
       const next = new Map(prev)
       next.set(char, newLevel)
       saveLevelOverrides('level_overrides', next)
       return next
     })
-  }, [])
+  }, [unlockedN3, removedBasic])
 
   const handleSessionResult = useCallback((results: ItemResult[]) => {
     const newWeakKanji = new Set(weakKanji)

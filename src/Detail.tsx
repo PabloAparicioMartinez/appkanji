@@ -254,6 +254,7 @@ export default function Detail({
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false)
   const [showLevelSheet, setShowLevelSheet] = useState(false)
   const [pendingLevel, setPendingLevel] = useState<JLPTLevel>(kanji.level)
+  const [displayLevel, setDisplayLevel] = useState<JLPTLevel>(kanji.level)
   const [animating, setAnimating] = useState(true)
   const [localUnlocked, setLocalUnlocked] = useState(unlocked)
 
@@ -261,6 +262,7 @@ export default function Detail({
     scrollRef.current?.scrollTo(0, 0)
     setSelectedWord(null)
     setShowRemoveConfirm(false)
+    setDisplayLevel(kanji.level)
   }, [kanji.k])
 
   function showSnack(msg: string) {
@@ -409,7 +411,7 @@ export default function Detail({
             {kanji.meanings.join(' · ')}
           </span>
           <div className="flex justify-center mt-3">
-            <Badge level={kanji.level} />
+            <Badge level={displayLevel} />
           </div>
         </div>
 
@@ -605,6 +607,7 @@ export default function Detail({
                   whileTap={{ backgroundColor: '#2a2a2c' }}
                   onClick={() => {
                     onChangeLevel?.(kanji.k, pendingLevel)
+                    setDisplayLevel(pendingLevel)
                     setShowLevelSheet(false)
                     showSnack(`${kanji.k} movido a ${pendingLevel}`)
                   }}
@@ -644,7 +647,7 @@ export default function Detail({
             exit={{ opacity: 0, y: 24 }}
             transition={{ type: 'spring', damping: 30, stiffness: 380 }}
             style={{
-              position: 'absolute', bottom: 'calc(20px + env(safe-area-inset-bottom))',
+              position: 'absolute', bottom: 'calc(18px)',
               left: 16, right: 16, zIndex: 62,
               background: '#1c1c1e', color: '#fff', borderRadius: 12,
               padding: '16px 16px', fontSize: 14, textAlign: 'left',
