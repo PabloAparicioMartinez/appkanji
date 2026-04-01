@@ -553,30 +553,37 @@ export default function Detail({
                   Cambiar nivel
                 </div>
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '8px 14px 16px', justifyContent: 'center' }}>
-                {(['N5', 'N4', 'N3', 'N2', 'N1'] as JLPTLevel[]).map(lvl => (
-                  <button
-                    key={lvl}
-                    onClick={() => setPendingLevel(lvl)}
-                    style={{
-                      background: pendingLevel === lvl ? LEVEL_COLORS[lvl].main : '#e5e5e2',
-                      color: pendingLevel === lvl ? '#fff' : 'var(--text)',
-                      borderRadius: 20,
-                      padding: '8px 20px',
-                      border: 'none',
-                      fontWeight: pendingLevel === lvl ? 600 : 400,
-                      fontSize: 14,
-                      fontFamily: 'inherit',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {lvl}
-                  </button>
-                ))}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 14px 16px' }}>
+                {(['N5', 'N4', 'N3', 'N2', 'N1'] as JLPTLevel[]).map(lvl => {
+                  const c = LEVEL_COLORS[lvl]
+                  const isActive = pendingLevel === lvl
+                  return (
+                    <button
+                      key={lvl}
+                      onClick={() => setPendingLevel(lvl)}
+                      style={{
+                        padding: '7px 0',
+                        borderRadius: 20,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        letterSpacing: '0.03em',
+                        fontFamily: 'inherit',
+                        border: isActive ? '1.5px solid transparent' : `1.5px solid ${c.main}`,
+                        background: isActive ? c.main : '#F4F4F1',
+                        color: isActive ? '#fff' : c.main,
+                        opacity: 0.8,
+                        cursor: 'pointer',
+                        width: '100%',
+                      }}
+                    >
+                      {lvl}
+                    </button>
+                  )
+                })}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 14px 20px', gap: 8 }}>
                 <motion.button
-                  whileTap={{ backgroundColor: LEVEL_COLORS[pendingLevel].main }}
+                  whileTap={{ backgroundColor: '#2a2a2c' }}
                   onClick={() => {
                     onChangeLevel?.(kanji.k, pendingLevel)
                     setShowLevelSheet(false)
@@ -584,7 +591,7 @@ export default function Detail({
                   }}
                   style={{
                     width: '100%', padding: '14px', borderRadius: 12,
-                    background: LEVEL_COLORS[pendingLevel].main, color: '#fff',
+                    background: '#3a3a3c', color: '#fff',
                     fontSize: 16, fontWeight: 600, fontFamily: 'inherit',
                     border: 'none', cursor: 'pointer',
                   }}
