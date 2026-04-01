@@ -232,6 +232,7 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
             onRemove={onRemove}
             onClose={() => setShowAddN3(false)}
             onStarWord={onStarWord}
+            onChangeLevel={onChangeLevel}
             isStarredWord={(w: string) => starredWords.has(w)}
           />
         )}

@@ -22,9 +22,10 @@ interface Props {
   onClose: () => void
   onStarWord?: (w: string) => void
   isStarredWord?: (w: string) => boolean
+  onChangeLevel?: (char: string, newLevel: JLPTLevel) => void
 }
 
-export default function AddKanji({ locked, onUnlock, onRemove, onClose, onStarWord, isStarredWord }: Props) {
+export default function AddKanji({ locked, onUnlock, onRemove, onClose, onStarWord, isStarredWord, onChangeLevel }: Props) {
   const [search, setSearch] = useState('')
   const [levels, setLevels] = useState<Set<JLPTLevel>>(new Set())
   const [selected, setSelected] = useState<Kanji | null>(null)
@@ -234,6 +235,7 @@ export default function AddKanji({ locked, onUnlock, onRemove, onClose, onStarWo
             onUnlock={handleUnlock}
             onRemove={onRemove ? handleRemove : undefined}
             onStarWord={onStarWord}
+            onChangeLevel={onChangeLevel}
             isStarredWord={isStarredWord}
           />
         )}
