@@ -332,19 +332,6 @@ export default function Detail({
           </motion.button>
         ) : (onRemove || onStar || onChangeLevel) && (
           <div className="flex items-center gap-3">
-            {onChangeLevel && (
-              <button
-                onClick={() => { setPendingLevel(kanji.level); setShowLevelSheet(true) }}
-                className="w-9 h-9 rounded-full flex items-center justify-center"
-                style={{ background: '#e5e5e2', border: 'none', cursor: 'pointer' }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
-                  <path d="M1 4v6h6"/>
-                  <path d="M23 20v-6h-6"/>
-                  <path d="M20.49 9a9 9 0 0 0-14.85-3.36L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/>
-                </svg>
-              </button>
-            )}
             {onStar && (
               <button
                 onClick={() => { onStar(kanji.k); showSnack(isStarred ? `${kanji.k} quitado de "Importantes"` : `${kanji.k} añadido a "Importantes"`) }}
@@ -355,6 +342,19 @@ export default function Detail({
                   fill={isStarred ? 'var(--text)' : 'none'}
                   stroke="var(--text)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+              </button>
+            )}
+            {onChangeLevel && (
+              <button
+                onClick={() => { setPendingLevel(kanji.level); setShowLevelSheet(true) }}
+                className="w-9 h-9 rounded-full flex items-center justify-center"
+                style={{ background: '#e5e5e2', border: 'none', cursor: 'pointer' }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
+                  <path d="M1 4v6h6"/>
+                  <path d="M23 20v-6h-6"/>
+                  <path d="M20.49 9a9 9 0 0 0-14.85-3.36L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/>
                 </svg>
               </button>
             )}
@@ -550,7 +550,7 @@ export default function Detail({
               </div>
               <div style={{ padding: '14px 20px 8px', textAlign: 'center' }}>
                 <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
-                  Cambiar nivel
+                  ¿Cambiar nivel?
                 </div>
                 <div style={{ fontSize: 14, color: 'var(--text3)', lineHeight: 1.4 }}>
                   {kanji.k} se moverá a la nueva sección
