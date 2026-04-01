@@ -255,6 +255,7 @@ export default function Detail({
   const [showLevelSheet, setShowLevelSheet] = useState(false)
   const [pendingLevel, setPendingLevel] = useState<JLPTLevel>(kanji.level)
   const [animating, setAnimating] = useState(true)
+  const [localUnlocked, setLocalUnlocked] = useState(unlocked)
 
   useEffect(() => {
     scrollRef.current?.scrollTo(0, 0)
@@ -318,19 +319,8 @@ export default function Detail({
         </motion.button>
 
         {/* Right side buttons */}
-        {!unlocked ? (
+        {!localUnlocked ? (
           <div className="flex items-center gap-3">
-            <motion.button
-              whileTap={{ scale: 0.88 }}
-              onClick={() => { onUnlock(kanji.k); showSnack(`${kanji.k} añadido a "Mi lista"`) }}
-              className="w-9 h-9 rounded-full flex items-center justify-center press"
-              style={{ background: '#e5e5e2' }}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-                style={{ color: 'var(--text)' }}>
-                <path d="M12 5v14M5 12h14"/>
-              </svg>
-            </motion.button>
             {onChangeLevel && (
               <button
                 onClick={() => { setPendingLevel(kanji.level); setShowLevelSheet(true) }}
@@ -344,6 +334,17 @@ export default function Detail({
                 </svg>
               </button>
             )}
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              onClick={() => { onUnlock(kanji.k); setLocalUnlocked(true); showSnack(`${kanji.k} añadido a "Mi lista"`) }}
+              className="w-9 h-9 rounded-full flex items-center justify-center press"
+              style={{ background: '#e5e5e2' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+                style={{ color: 'var(--text)' }}>
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+            </motion.button>
           </div>
         ) : (onRemove || onStar || onChangeLevel) && (
           <div className="flex items-center gap-3">
