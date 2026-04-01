@@ -339,7 +339,9 @@ export default function Detail({
                 style={{ background: '#e5e5e2', border: 'none', cursor: 'pointer' }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
-                  <path d="M12 5v14M5 10l7-7 7 7M19 14l-7 7-7-7"/>
+                  <path d="M1 4v6h6"/>
+                  <path d="M23 20v-6h-6"/>
+                  <path d="M20.49 9a9 9 0 0 0-14.85-3.36L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/>
                 </svg>
               </button>
             )}
@@ -547,8 +549,11 @@ export default function Detail({
                 <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)' }} />
               </div>
               <div style={{ padding: '14px 20px 8px', textAlign: 'center' }}>
-                <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>
+                <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
                   Cambiar nivel
+                </div>
+                <div style={{ fontSize: 14, color: 'var(--text3)', lineHeight: 1.4 }}>
+                  {kanji.k} se moverá a la nueva sección
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, padding: '8px 14px 16px' }}>
