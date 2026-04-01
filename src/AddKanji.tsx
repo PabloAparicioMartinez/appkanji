@@ -136,6 +136,8 @@ export default function AddKanji({ locked, onUnlock, onRemove, onClose, onStarWo
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar kanji, significado o lectura…"
             className="w-full text-[14px] outline-none"
+            autoCapitalize="none"
+            autoCorrect="off"
             style={{
               paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9,
               background: '#e5e5e2',
