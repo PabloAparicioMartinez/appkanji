@@ -553,7 +553,7 @@ export default function Detail({
                   Cambiar nivel
                 </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 14px 16px' }}>
+              <div style={{ display: 'flex', gap: 8, padding: '8px 14px 16px', flexWrap: 'wrap', justifyContent: 'center' }}>
                 {(['N5', 'N4', 'N3', 'N2', 'N1'] as JLPTLevel[]).map(lvl => {
                   const c = LEVEL_COLORS[lvl]
                   const isActive = pendingLevel === lvl
@@ -562,7 +562,7 @@ export default function Detail({
                       key={lvl}
                       onClick={() => setPendingLevel(lvl)}
                       style={{
-                        padding: '7px 0',
+                        padding: '7px 16px',
                         borderRadius: 20,
                         fontSize: 13,
                         fontWeight: 600,
@@ -573,7 +573,6 @@ export default function Detail({
                         color: isActive ? '#fff' : c.main,
                         opacity: 0.8,
                         cursor: 'pointer',
-                        width: '100%',
                       }}
                     >
                       {lvl}
