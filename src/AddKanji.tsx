@@ -239,7 +239,7 @@ export default function AddKanji({ locked, onUnlock, onRemove, onClose, onStar, 
             onStar={onStar}
             onStarWord={onStarWord}
             onChangeLevel={onChangeLevel}
-            isStarred={onStar ? false : undefined}
+            isStarred={isStarredKanji?.(selected.k)}
             isStarredWord={isStarredWord}
             isStarredKanji={isStarredKanji}
           />

@@ -191,6 +191,13 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
       exit={{ x: '100%' }}
       transition={IOS}
       onAnimationComplete={() => setAnimating(false)}
+      drag={animating ? false : 'y'}
+      dragConstraints={{ top: 0, bottom: 0 }}
+      dragElastic={{ top: 0, bottom: 0.4 }}
+      dragDirectionLock
+      onDragEnd={(_, info) => {
+        if (info.offset.y > 80 || info.velocity.y > 500) onClose()
+      }}
     >
       {phase === 'results' && (
         /* ── RESULTS ── */
@@ -321,7 +328,7 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
               <div style={{ display: 'flex', flexDirection: 'column', marginTop: sessionResultsRef.current.filter(r => r.correct).length > 0 ? 16 : 0 }}>
                 <div style={{ padding: '10px 16px 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Fallidas
+                    Incorrectas
                   </span>
                   <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)', background: '#e5e5e2', borderRadius: 20, padding: '1px 7px' }}>
                     {sessionResultsRef.current.filter(r => !r.correct).length}
@@ -488,7 +495,7 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
           </div>
 
           {/* Body */}
-          <div className="scroll flex-1 px-4" style={{ display: 'flex', flexDirection: 'column' }}>
+          <div className="scroll flex-1 px-4" style={{ display: 'flex', flexDirection: 'column', overflowY: 'auto', touchAction: 'pan-y' }}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={idx}
@@ -702,21 +709,19 @@ function FieldInput({
           animate={{ opacity: 1, height: 'auto' }}
           style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
         >
-          {result.autoCorrect ? (
+          {result.autoCorrect && (
+            <span style={{ fontSize: 13, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+              Correcto
+            </span>
+          )}
+          <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+            <span style={{ fontSize: 12, letterSpacing: '0.05em', marginRight: 4 }}>Respuesta:</span>
+            <span style={{ color: 'var(--text2)' }}>{result.expected}</span>
+          </span>
+          {result.examples?.map((ex, i) => <WordExample key={i} example={ex} />)}
+          {!result.autoCorrect && (
             <>
-              <span style={{ fontSize: 13, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-                Correcto
-              </span>
-              {result.examples?.map((ex, i) => <WordExample key={i} example={ex} />)}
-            </>
-          ) : (
-            <>
-              <span style={{ fontSize: 12, color: 'var(--text3)' }}>
-                <span style={{ fontSize: 10, letterSpacing: '0.05em', marginRight: 4 }}>Respuesta:</span>
-                <span style={{ color: 'var(--text2)' }}>{result.expected}</span>
-              </span>
-              {result.examples?.map((ex, i) => <WordExample key={i} example={ex} />)}
               {!isResolved ? (
                 <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
                   <motion.button
@@ -767,10 +772,10 @@ function FieldInput({
 function WordExample({ example }: { example: { word: string; furigana: string; meaning: string } }) {
   return (
     <span style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', alignItems: 'baseline', gap: 4 }}>
-      <span style={{ fontSize: 10, letterSpacing: '0.05em', marginRight: 2 }}>Ej.</span>
-      <span className="font-jp-serif" style={{ fontSize: 14, color: 'var(--text2)' }}>{example.word}</span>
+      <span style={{ fontSize: 12, letterSpacing: '0.05em', marginRight: 2 }}>Ej.</span>
+      <span className="font-jp-serif" style={{ fontSize: 12, color: 'var(--text2)' }}>{example.word}</span>
       <span style={{ color: 'var(--text3)' }}>({example.furigana})</span>
-      <span style={{ color: 'var(--text3)' }}>·</span>
+      <span style={{ color: 'var(--text2)' }}>·</span>
       <span style={{ color: 'var(--text2)' }}>{example.meaning}</span>
     </span>
   )
