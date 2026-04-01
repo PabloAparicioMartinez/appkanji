@@ -325,7 +325,7 @@ export default function Detail({
           <div className="flex items-center gap-3">
             {onChangeLevel && (
               <button
-                onClick={() => { setPendingLevel(kanji.level); setShowLevelSheet(true) }}
+                onClick={() => { setPendingLevel(displayLevel); setShowLevelSheet(true) }}
                 className="w-9 h-9 rounded-full flex items-center justify-center"
                 style={{ background: '#e5e5e2', border: 'none', cursor: 'pointer' }}
               >
@@ -365,7 +365,7 @@ export default function Detail({
             )}
             {onChangeLevel && (
               <button
-                onClick={() => { setPendingLevel(kanji.level); setShowLevelSheet(true) }}
+                onClick={() => { setPendingLevel(displayLevel); setShowLevelSheet(true) }}
                 className="w-9 h-9 rounded-full flex items-center justify-center"
                 style={{ background: '#e5e5e2', border: 'none', cursor: 'pointer' }}
               >
@@ -571,7 +571,7 @@ export default function Detail({
                   ¿Cambiar nivel?
                 </div>
                 <div style={{ fontSize: 14, color: 'var(--text3)', lineHeight: 1.4 }}>
-                  {kanji.k} se moverá a la nueva sección
+                  {kanji.k} se moverá al nuevo nivel
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, padding: '8px 14px 16px' }}>
@@ -609,7 +609,7 @@ export default function Detail({
                     onChangeLevel?.(kanji.k, pendingLevel)
                     setDisplayLevel(pendingLevel)
                     setShowLevelSheet(false)
-                    showSnack(`${kanji.k} movido a ${pendingLevel}`)
+                    showSnack(`${kanji.k} movido al nivel ${pendingLevel}`)
                   }}
                   style={{
                     width: '100%', padding: '14px', borderRadius: 12,
