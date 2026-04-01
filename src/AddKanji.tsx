@@ -20,12 +20,14 @@ interface Props {
   onUnlock: (char: string) => void
   onRemove?: (char: string) => void
   onClose: () => void
+  onStar?: (char: string) => void
   onStarWord?: (w: string) => void
   isStarredWord?: (w: string) => boolean
+  isStarredKanji?: (char: string) => boolean
   onChangeLevel?: (char: string, newLevel: JLPTLevel) => void
 }
 
-export default function AddKanji({ locked, onUnlock, onRemove, onClose, onStarWord, isStarredWord, onChangeLevel }: Props) {
+export default function AddKanji({ locked, onUnlock, onRemove, onClose, onStar, onStarWord, isStarredWord, isStarredKanji, onChangeLevel }: Props) {
   const [search, setSearch] = useState('')
   const [levels, setLevels] = useState<Set<JLPTLevel>>(new Set())
   const [selected, setSelected] = useState<Kanji | null>(null)
@@ -234,9 +236,12 @@ export default function AddKanji({ locked, onUnlock, onRemove, onClose, onStarWo
             onBack={() => setSelected(null)}
             onUnlock={handleUnlock}
             onRemove={onRemove ? handleRemove : undefined}
+            onStar={onStar}
             onStarWord={onStarWord}
             onChangeLevel={onChangeLevel}
+            isStarred={onStar ? false : undefined}
             isStarredWord={isStarredWord}
+            isStarredKanji={isStarredKanji}
           />
         )}
       </AnimatePresence>

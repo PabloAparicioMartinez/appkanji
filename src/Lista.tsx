@@ -231,9 +231,11 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
             onUnlock={onUnlock}
             onRemove={onRemove}
             onClose={() => setShowAddN3(false)}
+            onStar={onStar}
             onStarWord={onStarWord}
             onChangeLevel={onChangeLevel}
             isStarredWord={(w: string) => starredWords.has(w)}
+            isStarredKanji={(k: string) => starredKanji.has(k)}
           />
         )}
       </AnimatePresence>
