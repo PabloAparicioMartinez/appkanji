@@ -8,6 +8,7 @@ export interface CompoundWord {
 }
 
 export interface Kanji {
+  rank: number   // sequential order (1-1036)
   k: string      // the kanji character
   level: JLPTLevel
   meanings: string[]
