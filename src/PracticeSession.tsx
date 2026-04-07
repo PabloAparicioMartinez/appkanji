@@ -1,6 +1,7 @@
+import { createPortal } from 'react-dom'
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { SessionItem, JLPTLevel, PracticeMode, ItemResult, Kanji } from './types'
+import type { SessionItem, JLPTLevel, PracticeMode, ItemResult, Kanji, CompoundWord } from './types'
 import Detail from './Detail'
 import { KunReadingList } from './KunReading'
 
@@ -10,7 +11,7 @@ const SHEET = { type: 'tween' as const, duration: 0.24, ease: [0.25, 0.46, 0.45,
 interface FieldResult {
   autoCorrect: boolean
   expected: string
-  examples?: { word: string; furigana: string; meaning: string }[]
+  examples?: { word: string; furigana: string; meaning: string; level: JLPTLevel }[]
 }
 
 interface SessionResult {
@@ -32,7 +33,14 @@ interface Props {
 }
 
 function norm(s: string) {
-  return s.toLowerCase().replace(/\s/g, '')
+  return s.toLowerCase().replace(/\s/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+function sortByLevelAndRank(words: CompoundWord[]): CompoundWord[] {
+  const levelOrder: Record<JLPTLevel, number> = { N5: 0, N4: 1, N3: 2, N2: 3, N1: 4 }
+  const sorted = [...words]
+  sorted.sort((a, b) => levelOrder[a.l] - levelOrder[b.l])
+  return sorted
 }
 
 function toKatakana(s: string) {
@@ -53,6 +61,7 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
   const [animating,       setAnimating]       = useState(true)
   const [showStopConfirm, setShowStopConfirm] = useState(false)
   const [selectedKanji,   setSelectedKanji]   = useState<Kanji | null>(null)
+  const [snackbar,        setSnackbar]        = useState('')
 
   const onRef          = useRef<HTMLInputElement>(null)
   const kunRef         = useRef<HTMLInputElement>(null)
@@ -93,24 +102,38 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
       )
       const kunOk = k.kun.length === 0
         ? norm(kunVal) === '-'
-        : k.kun.some(r => {
-            const normalized = norm(r)
-            const normalizedVal = norm(kunVal)
-            // Exact match: 'まな.ぶ' === 'まな.ぶ'
-            if (normalized === normalizedVal) return true
-            // Accept kun without okurigana: 'まなぶ' === 'まな' when reading is 'まな.ぶ'
-            const kunPart = normalized.split('.')[0]
-            const okurigana = normalized.split('.')[1] ?? ''
-            // Accept full reading without dot: 'ちいさい' === 'ちい.さい'
-            if (normalizedVal === kunPart + okurigana) return true
-            return normalizedVal === kunPart
-          })
-      const onOk   = k.on.length  === 0 || k.on.some(r  => norm(r) === norm(toKatakana(onVal)))
+        : (() => {
+            const userKunReadings = kunVal.split(/[,、]/).map(v => norm(v.trim())).filter(v => v.length > 0)
+            if (userKunReadings.length !== k.kun.length) return false
+            return k.kun.every(r => {
+              const normalized = norm(r)
+              // Exact match: 'まな.ぶ' === 'まな.ぶ'
+              if (userKunReadings.includes(normalized)) return true
+              // Accept kun without okurigana: 'まなぶ' === 'まな' when reading is 'まな.ぶ'
+              const kunPart = normalized.split('.')[0]
+              const okurigana = normalized.split('.')[1] ?? ''
+              // Accept full reading without dot: 'ちいさい' === 'ちい.さい'
+              if (userKunReadings.includes(kunPart + okurigana)) return true
+              if (userKunReadings.includes(kunPart)) return true
+              return false
+            })
+          })()
+      const onOk = k.on.length === 0
+        ? norm(onVal) === '-'
+        : (() => {
+            const userOnReadings = onVal.split(/[,、]/).map(v => norm(toKatakana(v.trim()))).filter(v => v.length > 0)
+            if (userOnReadings.length !== k.on.length) return false
+            return k.on.every(r => userOnReadings.includes(norm(r)))
+          })()
 
       const onReadingsHira = k.on.map(r => toHiragana(r).toLowerCase())
-      const onWords = k.words.filter(w => onReadingsHira.some(r => w.f.toLowerCase().includes(r))).slice(0, 3)
-      const fallback = onWords.length > 0 ? onWords : k.words.slice(0, 3)
-      const onExamples = fallback.map(w => ({ word: w.w, furigana: w.f, meaning: w.m }))
+      const onWords = sortByLevelAndRank(k.words.filter(w => onReadingsHira.some(r => w.f.toLowerCase().includes(r))))
+      const combined = [...onWords]
+      if (combined.length < 3) {
+        const nonOnWords = sortByLevelAndRank(k.words.filter(w => !onReadingsHira.some(r => w.f.toLowerCase().includes(r))))
+        combined.push(...nonOnWords.slice(0, 3 - combined.length))
+      }
+      const onExamples = combined.slice(0, 3).map(w => ({ word: w.w, furigana: w.f, meaning: w.m, level: w.l }))
 
       fieldResults.push({ autoCorrect: meanOk, expected: k.meanings.join(', ') })
       fieldResults.push({ autoCorrect: kunOk,  expected: k.kun.map(r => r.replace('.', '')).join('、') || '-' })
@@ -180,6 +203,29 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
         { ref: meanRef, label: 'Significado', result: results[1], userEval: userEvals[1], onSelfEval: (v: boolean) => setUserEval(1, v) },
       ]
 
+  function handleFieldEnter(currentFieldIndex: number) {
+    const nextFieldIndex = currentFieldIndex + 1
+    if (nextFieldIndex < fields.length) {
+      // Focus next field
+      setTimeout(() => fields[nextFieldIndex].ref.current?.focus(), 0)
+    } else {
+      // Last field: blur to close keyboard
+      fields[currentFieldIndex].ref.current?.blur()
+    }
+  }
+
+  function showSnack(msg: string) {
+    setSnackbar(msg)
+    setTimeout(() => setSnackbar(''), 2400)
+  }
+
+  function handleStarKanji() {
+    if (!item?.kanji) return
+    const alreadyStarred = starredKanji?.has(item.kanji.k) ?? false
+    onStar?.(item.kanji.k)
+    showSnack(alreadyStarred ? `${item.kanji.k} quitado de "Importantes"` : `${item.kanji.k} añadido a "Importantes"`)
+  }
+
   const pct   = session.length > 0 ? Math.round((correct / session.length) * 100) : 0
 
   return (
@@ -191,13 +237,6 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
       exit={{ x: '100%' }}
       transition={IOS}
       onAnimationComplete={() => setAnimating(false)}
-      drag={animating ? false : 'y'}
-      dragConstraints={{ top: 0, bottom: 0 }}
-      dragElastic={{ top: 0, bottom: 0.4 }}
-      dragDirectionLock
-      onDragEnd={(_, info) => {
-        if (info.offset.y > 80 || info.velocity.y > 500) onClose()
-      }}
     >
       {phase === 'results' && (
         /* ── RESULTS ── */
@@ -478,19 +517,35 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
                 flexShrink: 0,
               }}
             >
-              <motion.button
-                whileTap={{ backgroundColor: '#d0d0cd' }}
-                onClick={() => setShowStopConfirm(true)}
-                className="w-9 h-9 rounded-full flex items-center justify-center press"
-                style={{ background: '#e5e5e2' }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ color: 'var(--text)' }}>
-                  <path d="M18 6L6 18M6 6l12 12"/>
-                </svg>
-              </motion.button>
               <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text3)', height: 36, display: 'flex', alignItems: 'center' }}>
                 {idx + 1} / {session.length}
               </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {item?.kanji && onStar && (
+                  <motion.button
+                    whileTap={{ backgroundColor: '#d0d0cd' }}
+                    onClick={handleStarKanji}
+                    className="w-9 h-9 rounded-full flex items-center justify-center press"
+                    style={{ background: '#e5e5e2', border: 'none', cursor: 'pointer' }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24"
+                      fill={starredKanji?.has(item.kanji.k) ? 'var(--text)' : 'none'}
+                      stroke="var(--text)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                  </motion.button>
+                )}
+                <motion.button
+                  whileTap={{ backgroundColor: '#d0d0cd' }}
+                  onClick={() => setShowStopConfirm(true)}
+                  className="w-9 h-9 rounded-full flex items-center justify-center press"
+                  style={{ background: '#e5e5e2' }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ color: 'var(--text)' }}>
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </motion.button>
+              </div>
             </div>
           </div>
 
@@ -540,7 +595,7 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
                   userEval={f.userEval}
                   onSelfEval={f.onSelfEval}
                   answered={answered}
-                  onEnter={() => !answered && checkAnswer()}
+                  onEnter={() => !answered && handleFieldEnter(i)}
                   shakeDelay={i * 0.05}
                 />
               ))}
@@ -588,70 +643,93 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
         </>
       )}
 
-      {/* Stop confirm sheet */}
+      {/* Stop confirm sheet (portal to escape transform context) */}
+      {createPortal(
+        <AnimatePresence>
+          {showStopConfirm && (
+            <>
+              <motion.div
+                style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,0.4)' }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18 }}
+                onClick={() => setShowStopConfirm(false)}
+              />
+              <motion.div
+                style={{
+                  position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 81,
+                  background: '#F4F4F1',
+                  borderRadius: '20px 20px 0 0',
+                  overflow: 'hidden',
+                }}
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={SHEET}
+              >
+                <div className="flex justify-center pt-3 pb-1">
+                  <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)' }} />
+                </div>
+                <div style={{ padding: '14px 20px 8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
+                    ¿Abandonar la sesión?
+                  </div>
+                  <div style={{ fontSize: 14, color: 'var(--text3)', lineHeight: 1.4 }}>
+                    Perderás el progreso de esta sesión
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 14px 20px', gap: 8 }}>
+                  <motion.button
+                    whileTap={{ backgroundColor: '#2a2a2c' }}
+                    onClick={() => { setShowStopConfirm(false); onClose() }}
+                    style={{
+                      width: '100%', padding: '14px', borderRadius: 12,
+                      background: '#3a3a3c', color: '#fff',
+                      fontSize: 16, fontWeight: 600, fontFamily: 'inherit',
+                      border: 'none', cursor: 'pointer',
+                    }}
+                  >
+                    Abandonar
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ backgroundColor: '#d0d0cd' }}
+                    onClick={() => setShowStopConfirm(false)}
+                    style={{
+                      width: '100%', padding: '14px', borderRadius: 12,
+                      background: '#e5e5e2', color: 'var(--text)',
+                      fontSize: 16, fontWeight: 500, fontFamily: 'inherit',
+                      border: 'none', cursor: 'pointer',
+                    }}
+                  >
+                    Cancelar
+                  </motion.button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
+
+      {/* Snackbar */}
       <AnimatePresence>
-        {showStopConfirm && (
-          <>
-            <motion.div
-              className="absolute inset-0 z-[80]"
-              style={{ background: 'rgba(0,0,0,0.4)' }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.18 }}
-              onClick={() => setShowStopConfirm(false)}
-            />
-            <motion.div
-              className="absolute z-[81] left-0 right-0 bottom-0"
-              style={{
-                background: '#F4F4F1',
-                borderRadius: '20px 20px 0 0',
-                overflow: 'hidden',
-              }}
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={SHEET}
-            >
-              <div className="flex justify-center pt-3 pb-1">
-                <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)' }} />
-              </div>
-              <div style={{ padding: '14px 20px 8px', textAlign: 'center' }}>
-                <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
-                  ¿Abandonar la sesión?
-                </div>
-                <div style={{ fontSize: 14, color: 'var(--text3)', lineHeight: 1.4 }}>
-                  Perderás el progreso de esta sesión
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 14px 20px', gap: 8 }}>
-                <motion.button
-                  whileTap={{ backgroundColor: '#2a2a2c' }}
-                  onClick={() => { setShowStopConfirm(false); onClose() }}
-                  style={{
-                    width: '100%', padding: '14px', borderRadius: 12,
-                    background: '#3a3a3c', color: '#fff',
-                    fontSize: 16, fontWeight: 600, fontFamily: 'inherit',
-                    border: 'none', cursor: 'pointer',
-                  }}
-                >
-                  Abandonar
-                </motion.button>
-                <motion.button
-                  whileTap={{ backgroundColor: '#d0d0cd' }}
-                  onClick={() => setShowStopConfirm(false)}
-                  style={{
-                    width: '100%', padding: '14px', borderRadius: 12,
-                    background: '#e5e5e2', color: 'var(--text)',
-                    fontSize: 16, fontWeight: 500, fontFamily: 'inherit',
-                    border: 'none', cursor: 'pointer',
-                  }}
-                >
-                  Cancelar
-                </motion.button>
-              </div>
-            </motion.div>
-          </>
+        {snackbar && (
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 24 }}
+            transition={{ type: 'spring', damping: 30, stiffness: 380 }}
+            style={{
+              position: 'absolute', bottom: 'calc(18px)',
+              left: 16, right: 16, zIndex: 62,
+              background: '#1c1c1e', color: '#fff', borderRadius: 12,
+              padding: '16px 16px', fontSize: 14, textAlign: 'left',
+              pointerEvents: 'none',
+            }}
+          >
+            {snackbar}
+          </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
@@ -719,7 +797,11 @@ function FieldInput({
             <span style={{ fontSize: 12, letterSpacing: '0.05em', marginRight: 4 }}>Respuesta:</span>
             <span style={{ color: 'var(--text2)' }}>{result.expected}</span>
           </span>
-          {result.examples?.map((ex, i) => <WordExample key={i} example={ex} />)}
+          {result.examples && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {result.examples.map((ex, i) => <WordExample key={i} example={ex} />)}
+            </div>
+          )}
           {!result.autoCorrect && (
             <>
               {!isResolved ? (
@@ -769,15 +851,30 @@ function FieldInput({
   )
 }
 
-function WordExample({ example }: { example: { word: string; furigana: string; meaning: string } }) {
+function WordExample({ example }: { example: { word: string; furigana: string; meaning: string; level: JLPTLevel } }) {
+  const [expanded, setExpanded] = useState(false)
+  const levelColors: Record<JLPTLevel, string> = {
+    N5: 'var(--n5)', N4: 'var(--n4)', N3: 'var(--n3)', N2: 'var(--n2)', N1: 'var(--n1)',
+  }
   return (
-    <span style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', alignItems: 'baseline', gap: 4 }}>
-      <span style={{ fontSize: 12, letterSpacing: '0.05em', marginRight: 2 }}>Ej.</span>
-      <span className="font-jp-serif" style={{ fontSize: 12, color: 'var(--text2)' }}>{example.word}</span>
-      <span style={{ color: 'var(--text3)' }}>({example.furigana})</span>
-      <span style={{ color: 'var(--text2)' }}>·</span>
-      <span style={{ color: 'var(--text2)' }}>{example.meaning}</span>
-    </span>
+    <div
+      onClick={() => setExpanded(e => !e)}
+      style={{
+        display: 'flex', alignItems: 'center',
+        cursor: 'pointer', padding: '4px 0',
+        position: 'relative',
+      }}
+    >
+      <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 3, background: levelColors[example.level], opacity: 0.8 }} />
+      <span className="font-jp-serif" style={{ fontSize: 15, color: 'var(--text)', paddingLeft: 13 }}>{example.word}</span>
+      {expanded && (
+        <span style={{ fontSize: 13, color: 'var(--text3)', display: 'flex', alignItems: 'baseline', gap: 4, marginLeft: 10 }}>
+          <span>({example.furigana})</span>
+          <span style={{ color: 'var(--text2)' }}>·</span>
+          <span style={{ color: 'var(--text2)' }}>{example.meaning}</span>
+        </span>
+      )}
+    </div>
   )
 }
 
