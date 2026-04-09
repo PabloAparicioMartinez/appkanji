@@ -17,6 +17,7 @@ interface FieldResult {
 interface SessionResult {
   item: SessionItem
   correct: boolean
+  fieldsPassed: boolean[]
 }
 
 interface Props {
@@ -33,7 +34,7 @@ interface Props {
 }
 
 function norm(s: string) {
-  return s.toLowerCase().replace(/\s/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  return s.toLowerCase().replace(/\s/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/－/g, '-')
 }
 
 function sortByLevelAndRank(words: CompoundWord[]): CompoundWord[] {
@@ -51,7 +52,7 @@ function toHiragana(s: string) {
   return s.replace(/[\u30A1-\u30F6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60))
 }
 
-export default function PracticeSession({ session, mode, onClose, onSessionResult, onStar, onStarWord, onRemove, starredKanji, starredWords }: Props) {
+export default function PracticeSession({ session, onClose, onSessionResult, onStar, onStarWord, onRemove, starredKanji, starredWords }: Props) {
   const [phase,    setPhase]    = useState<'session' | 'results'>('session')
   const [idx,      setIdx]      = useState(0)
   const [correct,  setCorrect]  = useState(0)
@@ -62,6 +63,7 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
   const [showStopConfirm, setShowStopConfirm] = useState(false)
   const [selectedKanji,   setSelectedKanji]   = useState<Kanji | null>(null)
   const [snackbar,        setSnackbar]        = useState('')
+  const [hasInput,        setHasInput]        = useState(false)
 
   const onRef          = useRef<HTMLInputElement>(null)
   const kunRef         = useRef<HTMLInputElement>(null)
@@ -77,13 +79,14 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
     setResults([])
     setUserEvals([])
     setPhase('session')
+    setHasInput(false)
     if (onRef.current)   onRef.current.value   = ''
     if (kunRef.current)  kunRef.current.value  = ''
     if (meanRef.current) meanRef.current.value = ''
     if (furiRef.current) furiRef.current.value = ''
     itemResultsRef.current = []
     sessionResultsRef.current = []
-    setTimeout(() => (mode === 'A' ? meanRef : furiRef).current?.focus(), 100)
+    setTimeout(() => (meanRef).current?.focus(), 100)
   }, [session])
 
   function checkAnswer() {
@@ -104,26 +107,25 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
         ? norm(kunVal) === '-'
         : (() => {
             const userKunReadings = kunVal.split(/[,、]/).map(v => norm(v.trim())).filter(v => v.length > 0)
-            if (userKunReadings.length !== k.kun.length) return false
-            return k.kun.every(r => {
-              const normalized = norm(r)
-              // Exact match: 'まな.ぶ' === 'まな.ぶ'
-              if (userKunReadings.includes(normalized)) return true
-              // Accept kun without okurigana: 'まなぶ' === 'まな' when reading is 'まな.ぶ'
-              const kunPart = normalized.split('.')[0]
-              const okurigana = normalized.split('.')[1] ?? ''
-              // Accept full reading without dot: 'ちいさい' === 'ちい.さい'
-              if (userKunReadings.includes(kunPart + okurigana)) return true
-              if (userKunReadings.includes(kunPart)) return true
-              return false
-            })
+            if (userKunReadings.length === 0) return false
+            return userKunReadings.some(userR =>
+              k.kun.some(r => {
+                const normalized = norm(r)
+                if (userR === normalized) return true
+                const kunPart = normalized.split('.')[0]
+                const okurigana = normalized.split('.')[1] ?? ''
+                if (userR === kunPart + okurigana) return true
+                if (userR === kunPart) return true
+                return false
+              })
+            )
           })()
       const onOk = k.on.length === 0
         ? norm(onVal) === '-'
         : (() => {
             const userOnReadings = onVal.split(/[,、]/).map(v => norm(toKatakana(v.trim()))).filter(v => v.length > 0)
-            if (userOnReadings.length !== k.on.length) return false
-            return k.on.every(r => userOnReadings.includes(norm(r)))
+            if (userOnReadings.length === 0) return false
+            return userOnReadings.some(userR => k.on.some(r => userR === norm(r)))
           })()
 
       const onReadingsHira = k.on.map(r => toHiragana(r).toLowerCase())
@@ -147,8 +149,8 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
       const furiOk = norm(w.f) === norm(furiVal)
       const meanOk = norm(meanVal).length > 0 && (norm(w.m).includes(norm(meanVal)) || norm(meanVal).includes(norm(w.m)))
 
-      fieldResults.push({ autoCorrect: furiOk, expected: w.f })
       fieldResults.push({ autoCorrect: meanOk, expected: w.m })
+      fieldResults.push({ autoCorrect: furiOk, expected: w.f })
     }
 
     setResults(fieldResults)
@@ -167,7 +169,8 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
     const item = session[idx]
     const key = item.type === 'A' ? (item.kanji?.k ?? '') : (item.word?.w ?? '')
     itemResultsRef.current.push({ key, type: item.type, correct: cardCorrect })
-    sessionResultsRef.current.push({ item, correct: cardCorrect })
+    const fieldsPassed = results.map((r, i) => r.autoCorrect || userEvals[i] === true)
+    sessionResultsRef.current.push({ item, correct: cardCorrect, fieldsPassed })
 
     if (idx + 1 >= session.length) {
       onSessionResult?.(itemResultsRef.current)
@@ -177,11 +180,12 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
       setAnswered(false)
       setResults([])
       setUserEvals([])
+      setHasInput(false)
       if (onRef.current)   onRef.current.value   = ''
       if (kunRef.current)  kunRef.current.value  = ''
       if (meanRef.current) meanRef.current.value = ''
       if (furiRef.current) furiRef.current.value = ''
-      setTimeout(() => (mode === 'A' ? meanRef : furiRef).current?.focus(), 80)
+      setTimeout(() => (meanRef).current?.focus(), 80)
     }
   }
 
@@ -199,8 +203,8 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
         { ref: onRef,   label: 'Lectura ON',  result: results[2], userEval: userEvals[2], onSelfEval: (v: boolean) => setUserEval(2, v) },
       ]
     : [
-        { ref: furiRef, label: 'Furigana',    result: results[0], userEval: userEvals[0], onSelfEval: (v: boolean) => setUserEval(0, v) },
-        { ref: meanRef, label: 'Significado', result: results[1], userEval: userEvals[1], onSelfEval: (v: boolean) => setUserEval(1, v) },
+        { ref: meanRef, label: 'Significado', result: results[0], userEval: userEvals[0], onSelfEval: (v: boolean) => setUserEval(0, v) },
+        { ref: furiRef, label: 'Furigana',    result: results[1], userEval: userEvals[1], onSelfEval: (v: boolean) => setUserEval(1, v) },
       ]
 
   function handleFieldEnter(currentFieldIndex: number) {
@@ -335,22 +339,27 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
                       )
                     } else if (item.type === 'B' && item.word) {
                       const w = item.word
+                      const stripe = { N5: 'var(--n5)', N4: 'var(--n4)', N3: 'var(--n3)', N2: 'var(--n2)', N1: 'var(--n1)' }[w.l]
                       return (
                         <div
                           key={i}
-                          className="flex items-center row-press cursor-pointer relative"
+                          className="flex items-center row-press relative"
                           style={{ background: 'var(--bg)' }}
                         >
                           <div style={{
                             position: 'absolute', top: 0, left: 0, bottom: 0,
-                            width: 6, background: 'var(--text3)',
+                            width: 6, background: stripe, opacity: 0.8,
                           }} />
-                          <div className="flex-1 min-w-0 py-2 pr-3" style={{ paddingLeft: 22 }}>
+                          <div className="font-jp-serif text-center flex-shrink-0"
+                            style={{ fontSize: 28, lineHeight: 1, width: 72, paddingLeft: 16, color: 'var(--text)' }}>
+                            {w.w}
+                          </div>
+                          <div className="flex-1 min-w-0 py-2 pr-3" style={{ paddingLeft: 10 }}>
                             <div style={{ fontSize: 15, color: 'var(--text)' }} className="truncate">
-                              {w.w}
+                              {w.m}
                             </div>
                             <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>
-                              {w.f}　{w.m}
+                              {w.f}
                             </div>
                           </div>
                         </div>
@@ -379,6 +388,8 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
                     if (item.type === 'A' && item.kanji) {
                       const k = item.kanji
                       const stripe = { N5: 'var(--n5)', N4: 'var(--n4)', N3: 'var(--n3)', N2: 'var(--n2)', N1: 'var(--n1)' }[k.level]
+                      const fieldLabels = ['Sig.', 'KUN', 'ON']
+                      const failedFields = fieldLabels.filter((_, fi) => sr.fieldsPassed[fi] === false)
                       return (
                         <div
                           key={i}
@@ -394,46 +405,87 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
                             style={{ fontSize: 34, lineHeight: 1, width: 64, paddingLeft: 16, color: 'var(--text)' }}>
                             {k.k}
                           </div>
-                          <div className="flex-1 min-w-0 py-2 pr-3" style={{ paddingLeft: 10 }}>
-                            <div style={{ fontSize: 15, color: 'var(--text)' }} className="truncate">
-                              {k.meanings.join(', ')}
+                          <div className="flex-1 min-w-0 py-2 pr-3" style={{ paddingLeft: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div className="flex-1 min-w-0">
+                              <div style={{ fontSize: 15, color: 'var(--text)' }} className="truncate">
+                                {k.meanings.join(', ')}
+                              </div>
+                              <div className="flex items-center flex-wrap gap-x-3 mt-1" style={{ fontSize: 12, color: 'var(--text3)' }}>
+                                {k.kun.length > 0 && (
+                                  <span>
+                                    <span style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em', marginRight: 3 }}>kun</span>
+                                    <span style={{ color: 'var(--text2)' }}><KunReadingList readings={k.kun} limit={2} /></span>
+                                  </span>
+                                )}
+                                {k.on.length > 0 && (
+                                  <span>
+                                    <span style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em', marginRight: 3 }}>on</span>
+                                    <span style={{ color: 'var(--text2)' }}>{k.on.slice(0, 2).join('・')}</span>
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex items-center flex-wrap gap-x-3 mt-1" style={{ fontSize: 12, color: 'var(--text3)' }}>
-                              {k.kun.length > 0 && (
-                                <span>
-                                  <span style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em', marginRight: 3 }}>kun</span>
-                                  <span style={{ color: 'var(--text2)' }}><KunReadingList readings={k.kun} limit={2} /></span>
-                                </span>
-                              )}
-                              {k.on.length > 0 && (
-                                <span>
-                                  <span style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em', marginRight: 3 }}>on</span>
-                                  <span style={{ color: 'var(--text2)' }}>{k.on.slice(0, 2).join('・')}</span>
-                                </span>
-                              )}
-                            </div>
+                            {failedFields.length > 0 && (
+                              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', flexShrink: 0 }}>
+                                {failedFields.map(label => (
+                                  <span key={label} style={{
+                                    fontSize: 10, width: 36, borderRadius: 20,
+                                    padding: '2px 0', textAlign: 'center',
+                                    background: '#3a3a3c', color: '#fff',
+                                    fontWeight: 500, letterSpacing: '0.02em',
+                                    display: 'inline-block',
+                                  }}>
+                                    {label}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       )
                     } else if (item.type === 'B' && item.word) {
                       const w = item.word
+                      const stripe = { N5: 'var(--n5)', N4: 'var(--n4)', N3: 'var(--n3)', N2: 'var(--n2)', N1: 'var(--n1)' }[w.l]
+                      const fieldLabels = ['Sig.', 'Furi.']
+                      const failedFields = fieldLabels.filter((_, fi) => sr.fieldsPassed[fi] === false)
                       return (
                         <div
                           key={i}
-                          className="flex items-center row-press cursor-pointer relative"
+                          className="flex items-center row-press relative"
                           style={{ background: 'var(--bg)' }}
                         >
                           <div style={{
                             position: 'absolute', top: 0, left: 0, bottom: 0,
-                            width: 6, background: 'var(--text3)',
+                            width: 6, background: stripe, opacity: 0.8,
                           }} />
-                          <div className="flex-1 min-w-0 py-2 pr-3" style={{ paddingLeft: 22 }}>
-                            <div style={{ fontSize: 15, color: 'var(--text)' }} className="truncate">
-                              {w.w}
+                          <div className="font-jp-serif text-center flex-shrink-0"
+                            style={{ fontSize: 28, lineHeight: 1, width: 72, paddingLeft: 16, color: 'var(--text)' }}>
+                            {w.w}
+                          </div>
+                          <div className="flex-1 min-w-0 py-2 pr-3" style={{ paddingLeft: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div className="flex-1 min-w-0">
+                              <div style={{ fontSize: 15, color: 'var(--text)' }} className="truncate">
+                                {w.m}
+                              </div>
+                              <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>
+                                {w.f}
+                              </div>
                             </div>
-                            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>
-                              {w.f}　{w.m}
-                            </div>
+                            {failedFields.length > 0 && (
+                              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', flexShrink: 0 }}>
+                                {failedFields.map(label => (
+                                  <span key={label} style={{
+                                    fontSize: 10, width: 36, borderRadius: 20,
+                                    padding: '2px 0', textAlign: 'center',
+                                    background: '#3a3a3c', color: '#fff',
+                                    fontWeight: 500, letterSpacing: '0.02em',
+                                    display: 'inline-block',
+                                  }}>
+                                    {label}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       )
@@ -521,7 +573,7 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
                 {idx + 1} / {session.length}
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                {item?.kanji && onStar && (
+                {isA && item?.kanji && onStar && (
                   <motion.button
                     whileTap={{ backgroundColor: '#d0d0cd' }}
                     onClick={handleStarKanji}
@@ -572,7 +624,7 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
                   </>
                 ) : item?.word ? (
                   <>
-                    <div className="font-jp-serif" style={{ fontSize: 58, lineHeight: 1, color: 'var(--text)' }}>
+                    <div className="font-jp-serif" style={{ fontSize: 112, lineHeight: 1, color: 'var(--text)' }}>
                       {item.word.w}
                     </div>
                     <div style={{ marginTop: 24 }}>
@@ -597,6 +649,9 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
                   answered={answered}
                   onEnter={() => !answered && handleFieldEnter(i)}
                   shakeDelay={i * 0.05}
+                  onChange={() => setHasInput(
+                    [onRef, kunRef, meanRef, furiRef].some(r => (r.current?.value ?? '').length > 0)
+                  )}
                 />
               ))}
             </div>
@@ -615,10 +670,14 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
           >
             {!answered ? (
               <motion.button
-                whileTap={{ backgroundColor: '#2a2a2c' }}
-                onClick={checkAnswer}
+                whileTap={hasInput ? { backgroundColor: '#2a2a2c' } : undefined}
+                onClick={hasInput ? checkAnswer : undefined}
                 className="w-full py-4 rounded-2xl text-white text-[16px] font-semibold"
-                style={{ background: '#3a3a3c', fontFamily: 'inherit', border: 'none', cursor: 'pointer' }}
+                style={{
+                  background: '#3a3a3c', fontFamily: 'inherit', border: 'none',
+                  cursor: hasInput ? 'pointer' : 'default',
+                  opacity: hasInput ? 1 : 0.35,
+                }}
               >
                 Comprobar
               </motion.button>
@@ -739,7 +798,7 @@ export default function PracticeSession({ session, mode, onClose, onSessionResul
 // ── Sub-components ─────────────────────────────────────────────────────────
 
 function FieldInput({
-  fieldRef, label, result, userEval, onSelfEval, answered, onEnter, shakeDelay
+  fieldRef, label, result, userEval, onSelfEval, answered, onEnter, shakeDelay, onChange
 }: {
   fieldRef: React.RefObject<HTMLInputElement | null>
   label: string
@@ -749,6 +808,7 @@ function FieldInput({
   answered: boolean
   onEnter: () => void
   shakeDelay: number
+  onChange?: () => void
 }) {
   const needsSelfEval = answered && result && !result.autoCorrect
   const isResolved    = needsSelfEval && userEval !== undefined
@@ -769,6 +829,7 @@ function FieldInput({
         type="text"
         readOnly={answered}
         onKeyDown={e => e.key === 'Enter' && onEnter()}
+        onChange={onChange}
         className={answered && result && !result.autoCorrect && userEval !== true ? 'shake' : ''}
         autoCapitalize="none"
         autoCorrect="off"
