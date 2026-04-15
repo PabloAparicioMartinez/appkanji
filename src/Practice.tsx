@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { Kanji, JLPTLevel, SessionItem, PracticeMode, ItemResult } from './types'
+import type { Kanji, JLPTLevel, SessionItem, PracticeMode, ItemResult, KanjiEdit } from './types'
 import PracticeSession from './PracticeSession'
 
 interface Props {
@@ -13,6 +13,8 @@ interface Props {
   onStar: (char: string) => void
   onStarWord: (word: string) => void
   onRemove: (char: string) => void
+  onChangeLevel?: (char: string, newLevel: JLPTLevel) => void
+  onEditKanji?: (char: string, edit: KanjiEdit) => void
 }
 
 type Mode = PracticeMode
@@ -38,7 +40,7 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-export default function Practice({ visible, starredKanji, starredWords, weakKanji, weakWords, onSessionResult, onStar, onStarWord, onRemove }: Props) {
+export default function Practice({ visible, starredKanji, starredWords, weakKanji, weakWords, onSessionResult, onStar, onStarWord, onRemove, onChangeLevel, onEditKanji }: Props) {
   const [mode,        setMode]        = useState<Mode>('A')
   const [levels,      setLevels]      = useState<Set<JLPTLevel>>(new Set())
   const [count,       setCount]       = useState(20)
@@ -332,6 +334,8 @@ export default function Practice({ visible, starredKanji, starredWords, weakKanj
             onStar={onStar}
             onStarWord={onStarWord}
             onRemove={onRemove}
+            onChangeLevel={onChangeLevel}
+            onEditKanji={onEditKanji}
             starredKanji={starredKanji}
             starredWords={starredWords}
           />

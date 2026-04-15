@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { AppScreen, ItemResult, JLPTLevel } from './types'
+import type { AppScreen, ItemResult, JLPTLevel, KanjiEdit } from './types'
 import { KANJI } from './kanji'
 import Lista from './Lista'
 import Practice from './Practice'
@@ -37,6 +37,17 @@ function loadLevelOverrides(key: string): Map<string, JLPTLevel> {
 }
 
 function saveLevelOverrides(key: string, m: Map<string, JLPTLevel>) {
+  localStorage.setItem(key, JSON.stringify([...m]))
+}
+
+function loadKanjiEdits(key: string): Map<string, KanjiEdit> {
+  try {
+    const raw = localStorage.getItem(key)
+    return new Map(raw ? JSON.parse(raw) : [])
+  } catch { return new Map() }
+}
+
+function saveKanjiEdits(key: string, m: Map<string, KanjiEdit>) {
   localStorage.setItem(key, JSON.stringify([...m]))
 }
 
@@ -87,6 +98,8 @@ export default function App() {
   const [weakWordsMastery, setWeakWordsMastery] = useState<Map<string, number>>(() => loadMap('weak_words_mastery'))
   // Custom level overrides
   const [levelOverrides, setLevelOverrides] = useState<Map<string, JLPTLevel>>(() => loadLevelOverrides('level_overrides'))
+  // Custom kanji edits (meanings, kun, on)
+  const [kanjiEdits, setKanjiEdits] = useState<Map<string, KanjiEdit>>(() => loadKanjiEdits('kanji_edits'))
 
   const isUnlocked = useCallback((k: { k: string; level: string }) => {
     if (k.level === 'N3' || k.level === 'N2' || k.level === 'N1') return unlockedN3.has(k.k)
@@ -127,6 +140,15 @@ export default function App() {
       const next = new Set(prev)
       if (next.has(word)) next.delete(word); else next.add(word)
       saveSet('starred_words', next)
+      return next
+    })
+  }, [])
+
+  const editKanji = useCallback((char: string, edit: KanjiEdit) => {
+    setKanjiEdits(prev => {
+      const next = new Map(prev)
+      next.set(char, { ...prev.get(char), ...edit })
+      saveKanjiEdits('kanji_edits', next)
       return next
     })
   }, [])
@@ -195,9 +217,12 @@ export default function App() {
 
   const LEVEL_ORDER: Record<JLPTLevel, number> = { N5: 0, N4: 1, N3: 2, N2: 3, N1: 4 }
 
-  const kanjiWithOverrides = KANJI.map(k =>
-    levelOverrides.has(k.k) ? { ...k, level: levelOverrides.get(k.k)! } : k
-  )
+  const kanjiWithOverrides = KANJI.map(k => {
+    let result = levelOverrides.has(k.k) ? { ...k, level: levelOverrides.get(k.k)! } : k
+    const edit = kanjiEdits.get(k.k)
+    if (edit) result = { ...result, ...edit }
+    return result
+  })
   const visible = kanjiWithOverrides
     .filter(isUnlocked)
     .sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level] || a.rank - b.rank)
@@ -230,6 +255,7 @@ export default function App() {
                   onStar={starKanji}
                   onStarWord={starWord}
                   onChangeLevel={changeLevelKanji}
+                  onEditKanji={editKanji}
                   starredKanji={starredKanji}
                   starredWords={starredWords}
                 />
@@ -243,6 +269,8 @@ export default function App() {
                   onStar={starKanji}
                   onStarWord={starWord}
                   onRemove={removeKanji}
+                  onChangeLevel={changeLevelKanji}
+                  onEditKanji={editKanji}
                 />
             }
           </motion.div>

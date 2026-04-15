@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import type { Kanji, JLPTLevel } from './types'
+import type { Kanji, JLPTLevel, KanjiEdit } from './types'
 import Detail from './Detail'
 import AddKanji from './AddKanji'
 import { readingMatchesQuery, hiraganaToKatakana, katakanaToHiragana } from './kanaToRomaji'
@@ -15,6 +15,7 @@ interface Props {
   onStar: (char: string) => void
   onStarWord: (w: string) => void
   onChangeLevel?: (char: string, newLevel: JLPTLevel) => void
+  onEditKanji?: (char: string, edit: KanjiEdit) => void
   starredKanji: Set<string>
   starredWords: Set<string>
 }
@@ -27,7 +28,7 @@ const LEVEL_COLORS: Record<JLPTLevel, { bg: string; color: string; stripe: strin
   N1: { bg: 'var(--n1-bg)', color: 'var(--n1)', stripe: 'var(--n1)' },
 }
 
-export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemove, onStar, onStarWord, onChangeLevel, starredKanji, starredWords }: Props) {
+export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemove, onStar, onStarWord, onChangeLevel, onEditKanji, starredKanji, starredWords }: Props) {
   const [search, setSearch] = useState('')
   const [levels, setLevels] = useState<Set<JLPTLevel>>(new Set())
   const [onlyStarred, setOnlyStarred] = useState(false)
@@ -216,6 +217,7 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
             onStar={onStar}
             onStarWord={onStarWord}
             onChangeLevel={onChangeLevel}
+            onEditKanji={onEditKanji}
             isStarred={starredKanji.has(selected.k)}
             isStarredWord={(w: string) => starredWords.has(w)}
             isStarredKanji={(k: string) => starredKanji.has(k)}

@@ -17,6 +17,12 @@ export interface Kanji {
   words: CompoundWord[]
 }
 
+export interface KanjiEdit {
+  meanings?: string[]
+  kun?: string[]
+  on?: string[]
+}
+
 export type AppScreen = 'lista' | 'practicar'
 export type PracticeMode = 'A' | 'B'
 

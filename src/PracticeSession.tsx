@@ -1,9 +1,10 @@
 import { createPortal } from 'react-dom'
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { SessionItem, JLPTLevel, PracticeMode, ItemResult, Kanji, CompoundWord } from './types'
+import type { SessionItem, JLPTLevel, PracticeMode, ItemResult, Kanji, KanjiEdit } from './types'
 import Detail from './Detail'
 import { KunReadingList } from './KunReading'
+import { sortByLevelAndRank } from './wordUtils'
 
 const IOS   = { type: 'tween' as const, duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
 const SHEET = { type: 'tween' as const, duration: 0.24, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
@@ -29,6 +30,8 @@ interface Props {
   onStar?: (char: string) => void
   onStarWord?: (word: string) => void
   onRemove?: (char: string) => void
+  onChangeLevel?: (char: string, newLevel: JLPTLevel) => void
+  onEditKanji?: (char: string, edit: KanjiEdit) => void
   starredKanji?: Set<string>
   starredWords?: Set<string>
 }
@@ -37,22 +40,15 @@ function norm(s: string) {
   return s.toLowerCase().replace(/\s/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/－/g, '-')
 }
 
-function sortByLevelAndRank(words: CompoundWord[]): CompoundWord[] {
-  const levelOrder: Record<JLPTLevel, number> = { N5: 0, N4: 1, N3: 2, N2: 3, N1: 4 }
-  const sorted = [...words]
-  sorted.sort((a, b) => levelOrder[a.l] - levelOrder[b.l])
-  return sorted
-}
 
 function toKatakana(s: string) {
   return s.replace(/[\u3041-\u3096]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60))
 }
 
-function toHiragana(s: string) {
-  return s.replace(/[\u30A1-\u30F6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60))
-}
 
-export default function PracticeSession({ session, onClose, onSessionResult, onStar, onStarWord, onRemove, starredKanji, starredWords }: Props) {
+const LEVEL_COLORS: Record<JLPTLevel, string> = { N5: 'var(--n5)', N4: 'var(--n4)', N3: 'var(--n3)', N2: 'var(--n2)', N1: 'var(--n1)' }
+
+export default function PracticeSession({ session, onClose, onSessionResult, onStar, onStarWord, onRemove, onChangeLevel, onEditKanji, starredKanji, starredWords }: Props) {
   const [phase,    setPhase]    = useState<'session' | 'results'>('session')
   const [idx,      setIdx]      = useState(0)
   const [correct,  setCorrect]  = useState(0)
@@ -61,6 +57,11 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
   const [userEvals, setUserEvals] = useState<(boolean | undefined)[]>([])
   const [animating,       setAnimating]       = useState(true)
   const [showStopConfirm, setShowStopConfirm] = useState(false)
+  const [showEditSheet,   setShowEditSheet]   = useState(false)
+  const [pendingLevel,    setPendingLevel]    = useState<JLPTLevel>('N5')
+  const [pendingMeanings, setPendingMeanings] = useState('')
+  const [pendingKun,      setPendingKun]      = useState('')
+  const [pendingOn,       setPendingOn]       = useState('')
   const [selectedKanji,   setSelectedKanji]   = useState<Kanji | null>(null)
   const [snackbar,        setSnackbar]        = useState('')
   const [hasInput,        setHasInput]        = useState(false)
@@ -128,14 +129,8 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
             return userOnReadings.some(userR => k.on.some(r => userR === norm(r)))
           })()
 
-      const onReadingsHira = k.on.map(r => toHiragana(r).toLowerCase())
-      const onWords = sortByLevelAndRank(k.words.filter(w => onReadingsHira.some(r => w.f.toLowerCase().includes(r))))
-      const combined = [...onWords]
-      if (combined.length < 3) {
-        const nonOnWords = sortByLevelAndRank(k.words.filter(w => !onReadingsHira.some(r => w.f.toLowerCase().includes(r))))
-        combined.push(...nonOnWords.slice(0, 3 - combined.length))
-      }
-      const onExamples = combined.slice(0, 3).map(w => ({ word: w.w, furigana: w.f, meaning: w.m, level: w.l }))
+      const allWordsSorted = sortByLevelAndRank(k.words)
+      const onExamples = allWordsSorted.slice(0, 3).map(w => ({ word: w.w, furigana: w.f, meaning: w.m, level: w.l }))
 
       fieldResults.push({ autoCorrect: meanOk, expected: k.meanings.join(', ') })
       fieldResults.push({ autoCorrect: kunOk,  expected: k.kun.map(r => r.replace('.', '')).join('、') || '-' })
@@ -587,6 +582,27 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
                     </svg>
                   </motion.button>
                 )}
+                {isA && item?.kanji && (onChangeLevel || onEditKanji) && (
+                  <motion.button
+                    whileTap={{ backgroundColor: '#d0d0cd' }}
+                    onClick={() => {
+                      const k = item.kanji!
+                      setPendingLevel(k.level)
+                      setPendingMeanings(k.meanings.join(', '))
+                      setPendingKun(k.kun.join('、'))
+                      setPendingOn(k.on.join('、'))
+                      setShowEditSheet(true)
+                    }}
+                    className="w-9 h-9 rounded-full flex items-center justify-center press"
+                    style={{ background: '#e5e5e2', border: 'none', cursor: 'pointer' }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
+                      <path d="M1 4v6h6"/>
+                      <path d="M23 20v-6h-6"/>
+                      <path d="M20.49 9a9 9 0 0 0-14.85-3.36L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                    </svg>
+                  </motion.button>
+                )}
                 <motion.button
                   whileTap={{ backgroundColor: '#d0d0cd' }}
                   onClick={() => setShowStopConfirm(true)}
@@ -760,6 +776,112 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
                       fontSize: 16, fontWeight: 500, fontFamily: 'inherit',
                       border: 'none', cursor: 'pointer',
                     }}
+                  >
+                    Cancelar
+                  </motion.button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
+
+      {/* Edit sheet */}
+      {createPortal(
+        <AnimatePresence>
+          {showEditSheet && item?.kanji && (
+            <>
+              <motion.div
+                style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,0.4)' }}
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                transition={{ duration: 0.18 }}
+                onClick={() => setShowEditSheet(false)}
+              />
+              <motion.div
+                style={{
+                  position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 81,
+                  background: '#F4F4F1', borderRadius: '20px 20px 0 0',
+                  maxHeight: '88%', display: 'flex', flexDirection: 'column',
+                }}
+                initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+                transition={SHEET}
+              >
+                <div className="flex justify-center pt-3 pb-1" style={{ flexShrink: 0 }}>
+                  <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)' }} />
+                </div>
+                <div style={{ padding: '14px 20px 8px', textAlign: 'center', flexShrink: 0 }}>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text)' }}>Editar kanji</div>
+                </div>
+                <div className="scroll flex-1" style={{ padding: '6px 14px 0' }}>
+                  {/* Nivel */}
+                  <div style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Nivel</div>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+                    {(['N5', 'N4', 'N3', 'N2', 'N1'] as JLPTLevel[]).map(lvl => {
+                      const isActive = pendingLevel === lvl
+                      return (
+                        <button key={lvl} onClick={() => setPendingLevel(lvl)} style={{
+                          padding: '7px 0', borderRadius: 20, fontSize: 13, fontWeight: 600,
+                          letterSpacing: '0.03em', fontFamily: 'inherit', flex: 1, cursor: 'pointer',
+                          border: isActive ? '1.5px solid transparent' : `1.5px solid ${LEVEL_COLORS[lvl]}`,
+                          background: isActive ? LEVEL_COLORS[lvl] : '#F4F4F1',
+                          color: isActive ? '#fff' : LEVEL_COLORS[lvl], opacity: 0.8,
+                        }}>{lvl}</button>
+                      )
+                    })}
+                  </div>
+                  {/* Significados */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+                    <label style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Significados</label>
+                    <input value={pendingMeanings} onChange={e => setPendingMeanings(e.target.value)}
+                      autoCapitalize="none" autoCorrect="off"
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: 'none', background: '#e5e5e2', color: 'var(--text)', fontSize: 15, fontFamily: 'inherit', outline: 'none' }} />
+                    <span style={{ fontSize: 11, color: 'var(--text3)' }}>Separados por coma</span>
+                  </div>
+                  {/* KUN */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+                    <label style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Lectura KUN</label>
+                    <input value={pendingKun} onChange={e => setPendingKun(e.target.value)}
+                      autoCapitalize="none" autoCorrect="off" className="font-jp-serif"
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: 'none', background: '#e5e5e2', color: 'var(--text)', fontSize: 15, fontFamily: 'inherit', outline: 'none' }} />
+                    <span style={{ fontSize: 11, color: 'var(--text3)' }}>En hiragana, separados por coma (okurigana con punto)</span>
+                  </div>
+                  {/* ON */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+                    <label style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Lectura ON</label>
+                    <input value={pendingOn} onChange={e => setPendingOn(e.target.value)}
+                      autoCapitalize="none" autoCorrect="off" className="font-jp-serif"
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: 'none', background: '#e5e5e2', color: 'var(--text)', fontSize: 15, fontFamily: 'inherit', outline: 'none' }} />
+                    <span style={{ fontSize: 11, color: 'var(--text3)' }}>En katakana, separados por coma</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', padding: '12px 14px 20px', gap: 8, flexShrink: 0 }}>
+                  <motion.button
+                    whileTap={{ backgroundColor: '#2a2a2c' }}
+                    onClick={() => {
+                      const k = item.kanji!
+                      if (onChangeLevel) onChangeLevel(k.k, pendingLevel)
+                      if (onEditKanji) {
+                        const meanings = pendingMeanings.split(/[,、]/).map(s => s.trim()).filter(Boolean)
+                        const kun      = pendingKun.split(/[,、]/).map(s => s.trim()).filter(Boolean)
+                        const on       = pendingOn.split(/[,、]/).map(s => s.trim()).filter(Boolean)
+                        onEditKanji(k.k, {
+                          meanings: meanings.length > 0 ? meanings : k.meanings,
+                          kun, on,
+                        })
+                      }
+                      setShowEditSheet(false)
+                      setSnackbar(`${item.kanji!.k} actualizado`)
+                      setTimeout(() => setSnackbar(''), 2400)
+                    }}
+                    style={{ width: '100%', padding: '14px', borderRadius: 12, background: '#3a3a3c', color: '#fff', fontSize: 16, fontWeight: 600, fontFamily: 'inherit', border: 'none', cursor: 'pointer' }}
+                  >
+                    Guardar
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ backgroundColor: '#d0d0cd' }}
+                    onClick={() => setShowEditSheet(false)}
+                    style={{ width: '100%', padding: '14px', borderRadius: 12, background: '#e5e5e2', color: 'var(--text)', fontSize: 16, fontWeight: 500, fontFamily: 'inherit', border: 'none', cursor: 'pointer' }}
                   >
                     Cancelar
                   </motion.button>

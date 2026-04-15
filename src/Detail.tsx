@@ -1,9 +1,10 @@
 import { createPortal } from 'react-dom'
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { Kanji, JLPTLevel, CompoundWord } from './types'
+import type { Kanji, JLPTLevel, CompoundWord, KanjiEdit } from './types'
 import { KANJI } from './kanji'
 import { KunReadingList } from './KunReading'
+import { sortByLevelAndRank } from './wordUtils'
 
 interface Props {
   kanji: Kanji
@@ -14,6 +15,7 @@ interface Props {
   onStar?: (k: string) => void
   onStarWord?: (w: string) => void
   onChangeLevel?: (k: string, newLevel: JLPTLevel) => void
+  onEditKanji?: (k: string, edit: KanjiEdit) => void
   isStarred?: boolean
   isStarredWord?: (w: string) => boolean
   isStarredKanji?: (k: string) => boolean
@@ -127,6 +129,11 @@ function WordSheet({ word, onClose, isStarredWord, isStarredKanji, onStarWord, o
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1">
           <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)' }} />
+        </div>
+
+        {/* Title */}
+        <div style={{ padding: '14px 20px 8px', textAlign: 'center', flexShrink: 0 }}>
+          <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text)' }}>Detalle de la palabra</div>
         </div>
 
         {/* Word header */}
@@ -245,18 +252,21 @@ function WordSheet({ word, onClose, isStarredWord, isStarredKanji, onStarWord, o
 
 // ── Detail ──────────────────────────────────────────────────────────────────
 export default function Detail({
-  kanji, unlocked, onBack, onUnlock, onRemove, onStar, onStarWord, onChangeLevel,
+  kanji, unlocked, onBack, onUnlock, onRemove, onStar, onStarWord, onChangeLevel, onEditKanji,
   isStarred, isStarredWord, isStarredKanji,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [selectedWord, setSelectedWord] = useState<CompoundWord | null>(null)
   const [snackbar, setSnackbar] = useState('')
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false)
-  const [showLevelSheet, setShowLevelSheet] = useState(false)
-  const [pendingLevel, setPendingLevel] = useState<JLPTLevel>(kanji.level)
-  const [displayLevel, setDisplayLevel] = useState<JLPTLevel>(kanji.level)
-  const [animating, setAnimating] = useState(true)
-  const [localUnlocked, setLocalUnlocked] = useState(unlocked)
+  const [showLevelSheet,   setShowLevelSheet]   = useState(false)
+  const [pendingLevel,     setPendingLevel]     = useState<JLPTLevel>(kanji.level)
+  const [pendingMeanings,  setPendingMeanings]  = useState('')
+  const [pendingKun,       setPendingKun]       = useState('')
+  const [pendingOn,        setPendingOn]        = useState('')
+  const [displayLevel,     setDisplayLevel]     = useState<JLPTLevel>(kanji.level)
+  const [animating,        setAnimating]        = useState(true)
+  const [localUnlocked,    setLocalUnlocked]    = useState(unlocked)
 
   useEffect(() => {
     scrollRef.current?.scrollTo(0, 0)
@@ -325,7 +335,7 @@ export default function Detail({
           <div className="flex items-center gap-3">
             {onChangeLevel && (
               <button
-                onClick={() => { setPendingLevel(displayLevel); setShowLevelSheet(true) }}
+                onClick={() => { setPendingLevel(displayLevel); setPendingMeanings(kanji.meanings.join(', ')); setPendingKun(kanji.kun.join('、')); setPendingOn(kanji.on.join('、')); setShowLevelSheet(true) }}
                 className="w-9 h-9 rounded-full flex items-center justify-center"
                 style={{ background: '#e5e5e2', border: 'none', cursor: 'pointer' }}
               >
@@ -348,7 +358,7 @@ export default function Detail({
               </svg>
             </motion.button>
           </div>
-        ) : (onRemove || onStar || onChangeLevel) && (
+        ) : (onRemove || onStar || onChangeLevel || onEditKanji) && (
           <div className="flex items-center gap-3">
             {onStar && (
               <button
@@ -365,7 +375,7 @@ export default function Detail({
             )}
             {onChangeLevel && (
               <button
-                onClick={() => { setPendingLevel(displayLevel); setShowLevelSheet(true) }}
+                onClick={() => { setPendingLevel(displayLevel); setPendingMeanings(kanji.meanings.join(', ')); setPendingKun(kanji.kun.join('、')); setPendingOn(kanji.on.join('、')); setShowLevelSheet(true) }}
                 className="w-9 h-9 rounded-full flex items-center justify-center"
                 style={{ background: '#e5e5e2', border: 'none', cursor: 'pointer' }}
               >
@@ -457,7 +467,7 @@ export default function Detail({
           {kanji.words.length === 0
             ? <p style={{ fontSize: 14, color: 'var(--text3)', padding: '8px 16px' }}>Sin palabras disponibles</p>
             : <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {kanji.words.map((w, i) => (
+                {sortByLevelAndRank(kanji.words).map((w, i) => (
                   <WordRow key={i} word={w} onClick={() => setSelectedWord(w)}
                     onStar={onStarWord ? handleStarWord : undefined}
                     starred={isStarredWord?.(w.w)} />
@@ -539,7 +549,7 @@ export default function Detail({
         document.body,
       )}
 
-      {/* Level change sheet (portal to escape transform context) */}
+      {/* Edit sheet (portal to escape transform context) */}
       {createPortal(
         <AnimatePresence>
           {showLevelSheet && (
@@ -557,7 +567,9 @@ export default function Detail({
                   position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 81,
                   background: '#F4F4F1',
                   borderRadius: '20px 20px 0 0',
-                  overflow: 'hidden',
+                  maxHeight: '88%',
+                  display: 'flex',
+                  flexDirection: 'column',
                 }}
                 initial={{ y: '100%' }}
                 animate={{ y: 0 }}
@@ -565,53 +577,130 @@ export default function Detail({
                 transition={SHEET}
               >
                 {/* Handle */}
-                <div className="flex justify-center pt-3 pb-1">
+                <div className="flex justify-center pt-3 pb-1" style={{ flexShrink: 0 }}>
                   <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)' }} />
                 </div>
-                <div style={{ padding: '14px 20px 8px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
-                    ¿Cambiar nivel?
-                  </div>
-                  <div style={{ fontSize: 14, color: 'var(--text3)', lineHeight: 1.4 }}>
-                    {kanji.k} se moverá al nuevo nivel
+
+                {/* Title */}
+                <div style={{ padding: '14px 20px 8px', textAlign: 'center', flexShrink: 0 }}>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text)' }}>
+                    Editar kanji
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, padding: '8px 14px 16px' }}>
-                  {(['N5', 'N4', 'N3', 'N2', 'N1'] as JLPTLevel[]).map(lvl => {
-                    const c = LEVEL_COLORS[lvl]
-                    const isActive = pendingLevel === lvl
-                    return (
-                      <button
-                        key={lvl}
-                        onClick={() => setPendingLevel(lvl)}
-                        style={{
-                          padding: '7px 0',
-                          borderRadius: 20,
-                          fontSize: 13,
-                          fontWeight: 600,
-                          letterSpacing: '0.03em',
-                          fontFamily: 'inherit',
-                          border: isActive ? '1.5px solid transparent' : `1.5px solid ${c.main}`,
-                          background: isActive ? c.main : '#F4F4F1',
-                          color: isActive ? '#fff' : c.main,
-                          opacity: 0.8,
-                          cursor: 'pointer',
-                          flex: 1,
-                        }}
-                      >
-                        {lvl}
-                      </button>
-                    )
-                  })}
+
+                {/* Scrollable content */}
+                <div className="scroll flex-1" style={{ padding: '6px 14px 0' }}>
+
+                  {/* Nivel */}
+                  <div style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                    Nivel
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+                    {(['N5', 'N4', 'N3', 'N2', 'N1'] as JLPTLevel[]).map(lvl => {
+                      const c = LEVEL_COLORS[lvl]
+                      const isActive = pendingLevel === lvl
+                      return (
+                        <button
+                          key={lvl}
+                          onClick={() => setPendingLevel(lvl)}
+                          style={{
+                            padding: '7px 0', borderRadius: 20,
+                            fontSize: 13, fontWeight: 600, letterSpacing: '0.03em',
+                            fontFamily: 'inherit',
+                            border: isActive ? '1.5px solid transparent' : `1.5px solid ${c.main}`,
+                            background: isActive ? c.main : '#F4F4F1',
+                            color: isActive ? '#fff' : c.main,
+                            opacity: 0.8, cursor: 'pointer', flex: 1,
+                          }}
+                        >
+                          {lvl}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Significados */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+                    <label style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Significados
+                    </label>
+                    <input
+                      value={pendingMeanings}
+                      onChange={e => setPendingMeanings(e.target.value)}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      style={{
+                        width: '100%', padding: '10px 12px', borderRadius: 10, border: 'none',
+                        background: '#e5e5e2', color: 'var(--text)', fontSize: 15,
+                        fontFamily: 'inherit', outline: 'none',
+                      }}
+                    />
+                    <span style={{ fontSize: 11, color: 'var(--text3)' }}>Separados por coma</span>
+                  </div>
+
+                  {/* KUN */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+                    <label style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Lectura KUN
+                    </label>
+                    <input
+                      value={pendingKun}
+                      onChange={e => setPendingKun(e.target.value)}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      className="font-jp-serif"
+                      style={{
+                        width: '100%', padding: '10px 12px', borderRadius: 10, border: 'none',
+                        background: '#e5e5e2', color: 'var(--text)', fontSize: 15,
+                        fontFamily: 'inherit', outline: 'none',
+                      }}
+                    />
+                    <span style={{ fontSize: 11, color: 'var(--text3)' }}>En hiragana, separados por coma (okurigana con punto)</span>
+                  </div>
+
+                  {/* ON */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+                    <label style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Lectura ON
+                    </label>
+                    <input
+                      value={pendingOn}
+                      onChange={e => setPendingOn(e.target.value)}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      className="font-jp-serif"
+                      style={{
+                        width: '100%', padding: '10px 12px', borderRadius: 10, border: 'none',
+                        background: '#e5e5e2', color: 'var(--text)', fontSize: 15,
+                        fontFamily: 'inherit', outline: 'none',
+                      }}
+                    />
+                    <span style={{ fontSize: 11, color: 'var(--text3)' }}>En katakana, separados por coma</span>
+                  </div>
+
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 14px 20px', gap: 8 }}>
+
+                {/* Buttons */}
+                <div style={{ display: 'flex', flexDirection: 'column', padding: '12px 14px 20px', gap: 8, flexShrink: 0 }}>
                   <motion.button
                     whileTap={{ backgroundColor: '#2a2a2c' }}
                     onClick={() => {
-                      onChangeLevel?.(kanji.k, pendingLevel)
-                      setDisplayLevel(pendingLevel)
+                      if (onChangeLevel) {
+                        onChangeLevel(kanji.k, pendingLevel)
+                        setDisplayLevel(pendingLevel)
+                      }
+                      if (onEditKanji) {
+                        const meanings = pendingMeanings.split(/[,、]/).map(s => s.trim()).filter(Boolean)
+                        const kun      = pendingKun.split(/[,、]/).map(s => s.trim()).filter(Boolean)
+                        const on       = pendingOn.split(/[,、]/).map(s => s.trim()).filter(Boolean)
+                        onEditKanji(kanji.k, {
+                          meanings: meanings.length > 0 ? meanings : kanji.meanings,
+                          kun,
+                          on,
+                        })
+                      }
                       setShowLevelSheet(false)
-                      showSnack(`${kanji.k} movido al nivel ${pendingLevel}`)
+                      showSnack(`${kanji.k} actualizado`)
                     }}
                     style={{
                       width: '100%', padding: '14px', borderRadius: 12,
@@ -620,7 +709,7 @@ export default function Detail({
                       border: 'none', cursor: 'pointer',
                     }}
                   >
-                    Confirmar
+                    Guardar
                   </motion.button>
                   <motion.button
                     whileTap={{ backgroundColor: '#d0d0cd' }}
