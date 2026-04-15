@@ -130,7 +130,9 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
           })()
 
       const allWordsSorted = sortByLevelAndRank(k.words)
-      const onExamples = allWordsSorted.slice(0, 3).map(w => ({ word: w.w, furigana: w.f, meaning: w.m, level: w.l }))
+      const onReadingsHira = k.on.map(r => r.replace(/[\u30A1-\u30F6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60)))
+      const onWords = allWordsSorted.filter(w => onReadingsHira.some(r => w.f.includes(r)))
+      const onExamples = onWords.slice(0, 3).map(w => ({ word: w.w, furigana: w.f, meaning: w.m, level: w.l }))
 
       fieldResults.push({ autoCorrect: meanOk, expected: k.meanings.join(', ') })
       fieldResults.push({ autoCorrect: kunOk,  expected: k.kun.map(r => r.replace('.', '')).join('、') || '-' })
