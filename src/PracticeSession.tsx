@@ -102,7 +102,8 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
       const meanVal = meanRef.current?.value ?? ''
 
       const meanOk = norm(meanVal).length > 0 && k.meanings.some(m =>
-        norm(m).includes(norm(meanVal)) || norm(meanVal).includes(norm(m))
+        (norm(meanVal).length >= 3 && norm(m).includes(norm(meanVal))) ||
+        norm(meanVal).includes(norm(m))
       )
       const kunOk = k.kun.length === 0
         ? norm(kunVal) === '-'
@@ -624,10 +625,10 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
             <AnimatePresence mode="wait">
               <motion.div
                 key={idx}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.16 }}
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.07 }}
                 className="flex flex-col items-center"
                 style={{ paddingTop: 28, paddingBottom: 28 }}
               >
@@ -655,24 +656,33 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
 
             <div style={{ height: 24, flexShrink: 0 }} />
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              {fields.map((f, i) => (
-                <FieldInput
-                  key={f.label}
-                  fieldRef={f.ref}
-                  label={f.label}
-                  result={f.result}
-                  userEval={f.userEval}
-                  onSelfEval={f.onSelfEval}
-                  answered={answered}
-                  onEnter={() => !answered && handleFieldEnter(i)}
-                  shakeDelay={i * 0.05}
-                  onChange={() => setHasInput(
-                    [onRef, kunRef, meanRef, furiRef].some(r => (r.current?.value ?? '').length > 0)
-                  )}
-                />
-              ))}
-            </div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.07, delay: 0 }}
+                style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
+              >
+                {fields.map((f, i) => (
+                  <FieldInput
+                    key={f.label}
+                    fieldRef={f.ref}
+                    label={f.label}
+                    result={f.result}
+                    userEval={f.userEval}
+                    onSelfEval={f.onSelfEval}
+                    answered={answered}
+                    onEnter={() => !answered && handleFieldEnter(i)}
+                    shakeDelay={i * 0.05}
+                    onChange={() => setHasInput(
+                      [onRef, kunRef, meanRef, furiRef].some(r => (r.current?.value ?? '').length > 0)
+                    )}
+                  />
+                ))}
+              </motion.div>
+            </AnimatePresence>
 
             <div style={{ flex: 1, minHeight: 24 }} />
           </div>
