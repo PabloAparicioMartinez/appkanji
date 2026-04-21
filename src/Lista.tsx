@@ -3,7 +3,7 @@ import { AnimatePresence } from 'framer-motion'
 import type { Kanji, JLPTLevel, KanjiEdit } from './types'
 import Detail from './Detail'
 import AddKanji from './AddKanji'
-import { readingMatchesQuery, hiraganaToKatakana, katakanaToHiragana } from './kanaToRomaji'
+import { readingMatchesQuery } from './kanaToRomaji'
 import { KunReadingList } from './KunReading'
 
 interface Props {
@@ -43,10 +43,6 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
     return (
       k.k.includes(q) ||
       k.meanings.some(m => m.toLowerCase().includes(q)) ||
-      k.on.some(r => r.toLowerCase().includes(q)) ||
-      k.kun.some(r => r.toLowerCase().includes(q)) ||
-      k.on.some(r => r.includes(hiraganaToKatakana(q))) ||
-      k.kun.some(r => r.includes(katakanaToHiragana(q))) ||
       k.on.some(r => readingMatchesQuery(r, q)) ||
       k.kun.some(r => readingMatchesQuery(r, q))
     )

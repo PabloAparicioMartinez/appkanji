@@ -85,8 +85,13 @@ export function kanaToRomaji(str: string): string {
 }
 
 export function readingMatchesQuery(reading: string, query: string): boolean {
-  const romaji = kanaToRomaji(reading.replace(/[.\-・]/g, ''))
-  return romaji.includes(query)
+  const clean = reading.replace(/[.\-・]/g, '')
+  // Direct kana match (handles hiragana or katakana queries, including full okurigana forms)
+  if (clean.includes(query)) return true
+  if (clean.includes(hiraganaToKatakana(query))) return true
+  if (clean.includes(katakanaToHiragana(query))) return true
+  // Romaji match (handles latin queries like 'tabe', 'taberu', 'shoku')
+  return kanaToRomaji(clean).includes(query)
 }
 
 export function hiraganaToKatakana(str: string): string {

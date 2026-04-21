@@ -2,7 +2,18 @@
   "permissions": {
     "allow": [
       "Bash(node add-rank.cjs)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(node process_kanji.js --rename-to-cjs)",
+      "Bash(mv process_kanji.js process_kanji.cjs)",
+      "Bash(node process_kanji.cjs)",
+      "WebSearch",
+      "WebFetch(domain:jisho.org)",
+      "Bash(node --input-type=module)",
+      "Bash(npx tsc *)",
+      "Bash(node process_kanji_n345.cjs)",
+      "Bash(node -e ' *)",
+      "Bash(node -e \"process.stdout.write\\('test\\\\n'\\)\")",
+      "Bash(del \"C:\\\\Users\\\\pablo\\\\OneDrive\\\\Documentos\\\\App Kanji\\\\App Kanji\\\\process_kanji_n345.cjs\")"
     ]
   }
 }
