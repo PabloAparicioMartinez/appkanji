@@ -5,6 +5,7 @@ import type { Kanji, JLPTLevel, CompoundWord, KanjiEdit } from './types'
 import { KANJI } from './kanji'
 import { KunReadingList } from './KunReading'
 import { sortByLevelAndRank } from './wordUtils'
+import WordsEditor, { sanitizeEditedWords } from './WordsEditor'
 
 interface Props {
   kanji: Kanji
@@ -264,6 +265,7 @@ export default function Detail({
   const [pendingMeanings,  setPendingMeanings]  = useState('')
   const [pendingKun,       setPendingKun]       = useState('')
   const [pendingOn,        setPendingOn]        = useState('')
+  const [pendingWords,     setPendingWords]     = useState<CompoundWord[]>([])
   const [displayLevel,     setDisplayLevel]     = useState<JLPTLevel>(kanji.level)
   const [animating,        setAnimating]        = useState(true)
   const [localUnlocked,    setLocalUnlocked]    = useState(unlocked)
@@ -335,7 +337,7 @@ export default function Detail({
           <div className="flex items-center gap-3">
             {onChangeLevel && (
               <button
-                onClick={() => { setPendingLevel(displayLevel); setPendingMeanings(kanji.meanings.join(', ')); setPendingKun(kanji.kun.join('、')); setPendingOn(kanji.on.join('、')); setShowLevelSheet(true) }}
+                onClick={() => { setPendingLevel(displayLevel); setPendingMeanings(kanji.meanings.join(', ')); setPendingKun(kanji.kun.join('、')); setPendingOn(kanji.on.join('、')); setPendingWords(kanji.words.map(w => ({ ...w }))); setShowLevelSheet(true) }}
                 className="w-9 h-9 rounded-full flex items-center justify-center"
                 style={{ background: '#e5e5e2', border: 'none', cursor: 'pointer' }}
               >
@@ -375,7 +377,7 @@ export default function Detail({
             )}
             {onChangeLevel && (
               <button
-                onClick={() => { setPendingLevel(displayLevel); setPendingMeanings(kanji.meanings.join(', ')); setPendingKun(kanji.kun.join('、')); setPendingOn(kanji.on.join('、')); setShowLevelSheet(true) }}
+                onClick={() => { setPendingLevel(displayLevel); setPendingMeanings(kanji.meanings.join(', ')); setPendingKun(kanji.kun.join('、')); setPendingOn(kanji.on.join('、')); setPendingWords(kanji.words.map(w => ({ ...w }))); setShowLevelSheet(true) }}
                 className="w-9 h-9 rounded-full flex items-center justify-center"
                 style={{ background: '#e5e5e2', border: 'none', cursor: 'pointer' }}
               >
@@ -465,7 +467,7 @@ export default function Detail({
             Palabras compuestas
           </div>
           {kanji.words.length === 0
-            ? <p style={{ fontSize: 14, color: 'var(--text3)', padding: '8px 16px' }}>Sin palabras disponibles</p>
+            ? <p style={{ fontSize: 12, color: 'var(--text3)', padding: '8px 16px' }}>Sin palabras disponibles</p>
             : <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {sortByLevelAndRank(kanji.words).map((w, i) => (
                   <WordRow key={i} word={w} onClick={() => setSelectedWord(w)}
@@ -678,6 +680,18 @@ export default function Detail({
                     <span style={{ fontSize: 11, color: 'var(--text3)' }}>En katakana, separados por coma</span>
                   </div>
 
+                  {/* Palabras compuestas */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20, marginBottom: 8 }}>
+                    <label style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Palabras compuestas
+                    </label>
+                    <WordsEditor
+                      words={pendingWords}
+                      onChange={setPendingWords}
+                      defaultLevel={pendingLevel}
+                    />
+                  </div>
+
                 </div>
 
                 {/* Buttons */}
@@ -697,6 +711,7 @@ export default function Detail({
                           meanings: meanings.length > 0 ? meanings : kanji.meanings,
                           kun,
                           on,
+                          words: sanitizeEditedWords(pendingWords),
                         })
                       }
                       setShowLevelSheet(false)

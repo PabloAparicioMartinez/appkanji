@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import type { Kanji, JLPTLevel, KanjiEdit } from './types'
 import Detail from './Detail'
 import AddKanji from './AddKanji'
+import FastScrollbar from './FastScrollbar'
 import { readingMatchesQuery } from './kanaToRomaji'
 import { KunReadingList } from './KunReading'
 
@@ -34,6 +35,7 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
   const [onlyStarred, setOnlyStarred] = useState(false)
   const [selected, setSelected] = useState<Kanji | null>(null)
   const [showAddN3, setShowAddN3] = useState(false)
+  const listRef = useRef<HTMLDivElement>(null)
 
   const q = search.toLowerCase().trim()
   const items = visible.filter(k => {
@@ -169,7 +171,8 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
       </div>
 
       {/* List */}
-      <div className="scroll flex-1" style={{ background: '#F4F4F1' }}>
+      <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex' }}>
+      <div ref={listRef} className="scroll" style={{ flex: 1, background: '#F4F4F1' }}>
         {items.length === 0 ? (
           <div className="flex flex-col items-center py-20" style={{ color: 'var(--text3)' }}>
             <div style={{
@@ -199,6 +202,8 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
             ))}
           </div>
         )}
+      </div>
+      <FastScrollbar scrollRef={listRef} />
       </div>
 
       {/* Detail screen */}

@@ -263,8 +263,6 @@ export default function App() {
                   visible={visible}
                   starredKanji={starredKanji}
                   starredWords={starredWords}
-                  weakKanji={weakKanji}
-                  weakWords={weakWords}
                   onSessionResult={handleSessionResult}
                   onStar={starKanji}
                   onStarWord={starWord}

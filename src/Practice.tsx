@@ -7,8 +7,6 @@ interface Props {
   visible: Kanji[]
   starredKanji: Set<string>
   starredWords: Set<string>
-  weakKanji: Set<string>
-  weakWords: Set<string>
   onSessionResult: (results: ItemResult[]) => void
   onStar: (char: string) => void
   onStarWord: (word: string) => void
@@ -18,7 +16,7 @@ interface Props {
 }
 
 type Mode = PracticeMode
-type FilterType = 'all' | 'important' | 'weak'
+type FilterType = 'all' | 'important'
 
 const MODES = [
   { id: 'A' as Mode, title: 'Kanjis solos', subtitle: 'Ve un kanji y escribe su lectura y significado', icon: '漢' },
@@ -40,10 +38,10 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-export default function Practice({ visible, starredKanji, starredWords, weakKanji, weakWords, onSessionResult, onStar, onStarWord, onRemove, onChangeLevel, onEditKanji }: Props) {
+export default function Practice({ visible, starredKanji, starredWords, onSessionResult, onStar, onStarWord, onRemove, onChangeLevel, onEditKanji }: Props) {
   const [mode,        setMode]        = useState<Mode>('A')
   const [levels,      setLevels]      = useState<Set<JLPTLevel>>(new Set())
-  const [count,       setCount]       = useState(20)
+  const [count,       setCount]       = useState(0)
   const [countPreset, setCountPreset] = useState<'all' | '5' | '10' | '20' | 'custom' | null>(null)
   const [customInput, setCustomInput] = useState('')
   const [filter,      setFilter]      = useState<FilterType>('all')
@@ -54,19 +52,9 @@ export default function Practice({ visible, starredKanji, starredWords, weakKanj
     ? visible.filter(k => levels.has(k.level))
     : filter === 'all' ? [] : visible
   const pool = filter === 'important' ? basePool.filter(k => starredKanji.has(k.k))
-             : filter === 'weak'      ? basePool.filter(k => weakKanji.has(k.k))
              : basePool
 
-  // For mode B + weak: words in weakWords from any level-filtered kanji
-  const weakWordItems: SessionItem[] = filter === 'weak' && mode === 'B'
-    ? basePool.flatMap(k => k.words
-        .filter(w => weakWords.has(w.w))
-        .map(w => ({ type: 'B' as const, word: w, kanji: k })))
-    : []
-
-  const maxPool = filter === 'weak' && mode === 'B'
-    ? weakWordItems.length
-    : pool.length
+  const maxPool = pool.length
 
   useEffect(() => {
     if (countPreset === 'all')      setCount(maxPool)
@@ -94,11 +82,9 @@ export default function Practice({ visible, starredKanji, starredWords, weakKanj
     if (mode === 'A') {
       items = shuffle(pool).slice(0, count).map(k => ({ type: 'A', kanji: k }))
     } else {
-      const words: SessionItem[] = filter === 'weak'
-        ? weakWordItems
-        : basePool.flatMap(k => k.words
-            .filter(w => filter === 'important' ? starredWords.has(w.w) : true)
-            .map(w => ({ type: 'B' as const, word: w, kanji: k })))
+      const words: SessionItem[] = basePool.flatMap(k => k.words
+        .filter(w => filter === 'important' ? starredWords.has(w.w) : true)
+        .map(w => ({ type: 'B' as const, word: w, kanji: k })))
       items = shuffle(words).slice(0, count)
     }
     setSession(items)
@@ -107,8 +93,6 @@ export default function Practice({ visible, starredKanji, starredWords, weakKanj
 
   const canStart = countPreset !== null && count > 0 && (filter === 'all'
     ? levels.size > 0 && pool.length > 0
-    : filter === 'weak' && mode === 'B'
-    ? weakWordItems.length > 0
     : pool.length > 0)
 
   return (
@@ -216,7 +200,6 @@ export default function Practice({ visible, starredKanji, starredWords, weakKanj
               {([
                 { id: 'all'       as FilterType, title: 'Todos',      icon: '全' },
                 { id: 'important' as FilterType, title: 'Importantes', icon: '★' },
-                { id: 'weak'      as FilterType, title: 'Débiles',    icon: '弱' },
               ]).map(f => {
                 const active = filter === f.id
                 return (
@@ -306,7 +289,7 @@ export default function Practice({ visible, starredKanji, starredWords, weakKanj
             )}
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8, textAlign: 'center' }}>
               {countPreset !== 'all' && <>{count} de </>}
-              {maxPool} {filter === 'weak' && mode === 'B' ? 'palabras' : 'kanji'} seleccionados
+              {maxPool} kanji seleccionados
             </div>
           </div>
 

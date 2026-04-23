@@ -1,10 +1,11 @@
 import { createPortal } from 'react-dom'
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { SessionItem, JLPTLevel, PracticeMode, ItemResult, Kanji, KanjiEdit } from './types'
+import type { SessionItem, JLPTLevel, PracticeMode, ItemResult, Kanji, KanjiEdit, CompoundWord } from './types'
 import Detail from './Detail'
 import { KunReadingList } from './KunReading'
 import { sortByLevelAndRank } from './wordUtils'
+import WordsEditor, { sanitizeEditedWords } from './WordsEditor'
 
 const IOS   = { type: 'tween' as const, duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
 const SHEET = { type: 'tween' as const, duration: 0.24, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
@@ -37,7 +38,7 @@ interface Props {
 }
 
 function norm(s: string) {
-  return s.toLowerCase().replace(/\s/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/－/g, '-')
+  return s.toLowerCase().replace(/\s/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[－ー]/g, '-')
 }
 
 
@@ -62,6 +63,7 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
   const [pendingMeanings, setPendingMeanings] = useState('')
   const [pendingKun,      setPendingKun]      = useState('')
   const [pendingOn,       setPendingOn]       = useState('')
+  const [pendingWords,    setPendingWords]    = useState<CompoundWord[]>([])
   const [selectedKanji,   setSelectedKanji]   = useState<Kanji | null>(null)
   const [snackbar,        setSnackbar]        = useState('')
   const [hasInput,        setHasInput]        = useState(false)
@@ -122,18 +124,19 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
               })
             )
           })()
-      const onOk = k.on.length === 0
-        ? norm(onVal) === '-'
-        : (() => {
-            const userOnReadings = onVal.split(/[,、]/).map(v => norm(toKatakana(v.trim()))).filter(v => v.length > 0)
-            if (userOnReadings.length === 0) return false
-            return userOnReadings.some(userR => k.on.some(r => userR === norm(r)))
-          })()
 
       const allWordsSorted = sortByLevelAndRank(k.words)
       const onReadingsHira = k.on.map(r => r.replace(/[\u30A1-\u30F6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60)))
       const onWords = allWordsSorted.filter(w => onReadingsHira.some(r => w.f.includes(r)))
       const onExamples = onWords.slice(0, 3).map(w => ({ word: w.w, furigana: w.f, meaning: w.m, level: w.l }))
+
+      const onOk = (() => {
+        const userOnReadings = onVal.split(/[,、]/).map(v => norm(toKatakana(v.trim()))).filter(v => v.length > 0)
+        const isSkip = userOnReadings.length === 0 || (userOnReadings.length === 1 && userOnReadings[0] === '-')
+        if (onWords.length === 0 && isSkip) return true
+        if (userOnReadings.length === 0) return false
+        return userOnReadings.some(userR => k.on.some(r => userR === norm(r)))
+      })()
 
       fieldResults.push({ autoCorrect: meanOk, expected: k.meanings.join(', ') })
       fieldResults.push({ autoCorrect: kunOk,  expected: k.kun.map(r => r.replace('.', '')).join('、') || '-' })
@@ -594,6 +597,7 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
                       setPendingMeanings(k.meanings.join(', '))
                       setPendingKun(k.kun.join('、'))
                       setPendingOn(k.on.join('、'))
+                      setPendingWords(k.words.map(w => ({ ...w })))
                       setShowEditSheet(true)
                     }}
                     className="w-9 h-9 rounded-full flex items-center justify-center press"
@@ -625,10 +629,10 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
             <AnimatePresence mode="wait">
               <motion.div
                 key={idx}
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.07 }}
+                initial={idx === 0 ? false : { opacity: 0, scale: 0.93, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 1.04, transition: { duration: 0.1, ease: 'easeIn' } }}
+                transition={{ type: 'spring', damping: 22, stiffness: 300 }}
                 className="flex flex-col items-center"
                 style={{ paddingTop: 28, paddingBottom: 28 }}
               >
@@ -659,10 +663,10 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
             <AnimatePresence mode="wait">
               <motion.div
                 key={idx}
-                initial={{ opacity: 0, scale: 0.97 }}
+                initial={idx === 0 ? false : { opacity: 0, scale: 0.91 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.07, delay: 0 }}
+                exit={{ opacity: 0, transition: { duration: 0.08 } }}
+                transition={{ type: 'spring', damping: 20, stiffness: 280, delay: 0.06 }}
                 style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
               >
                 {fields.map((f, i) => (
@@ -866,6 +870,11 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
                       style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: 'none', background: '#e5e5e2', color: 'var(--text)', fontSize: 15, fontFamily: 'inherit', outline: 'none' }} />
                     <span style={{ fontSize: 11, color: 'var(--text3)' }}>En katakana, separados por coma</span>
                   </div>
+                  {/* Palabras compuestas */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20, marginBottom: 8 }}>
+                    <label style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Palabras compuestas</label>
+                    <WordsEditor words={pendingWords} onChange={setPendingWords} defaultLevel={pendingLevel} />
+                  </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', padding: '12px 14px 20px', gap: 8, flexShrink: 0 }}>
                   <motion.button
@@ -880,6 +889,7 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
                         onEditKanji(k.k, {
                           meanings: meanings.length > 0 ? meanings : k.meanings,
                           kun, on,
+                          words: sanitizeEditedWords(pendingWords),
                         })
                       }
                       setShowEditSheet(false)

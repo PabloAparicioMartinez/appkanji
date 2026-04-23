@@ -13,7 +13,10 @@
       "Bash(node process_kanji_n345.cjs)",
       "Bash(node -e ' *)",
       "Bash(node -e \"process.stdout.write\\('test\\\\n'\\)\")",
-      "Bash(del \"C:\\\\Users\\\\pablo\\\\OneDrive\\\\Documentos\\\\App Kanji\\\\App Kanji\\\\process_kanji_n345.cjs\")"
+      "Bash(del \"C:\\\\Users\\\\pablo\\\\OneDrive\\\\Documentos\\\\App Kanji\\\\App Kanji\\\\process_kanji_n345.cjs\")",
+      "Bash(awk 'NR==40' \"src/PracticeSession.tsx\")",
+      "Bash(awk 'NR==39,NR==42' \"src/PracticeSession.tsx\")",
+      "Bash(awk 'NR>=120 && NR<=140 { printf \"%d|%s|\\\\n\", NR, $0 }' \"src/PracticeSession.tsx\")"
     ]
   }
 }

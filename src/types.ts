@@ -21,6 +21,7 @@ export interface KanjiEdit {
   meanings?: string[]
   kun?: string[]
   on?: string[]
+  words?: CompoundWord[]
 }
 
 export type AppScreen = 'lista' | 'practicar'

@@ -1,7 +1,8 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Kanji, JLPTLevel } from './types'
 import Detail from './Detail'
+import FastScrollbar from './FastScrollbar'
 import { readingMatchesQuery } from './kanaToRomaji'
 import { KunReadingList } from './KunReading'
 
@@ -34,6 +35,7 @@ export default function AddKanji({ locked, onUnlock, onRemove, onClose, onStar, 
   const [justUnlocked, setJustUnlocked] = useState<Set<string>>(new Set())
   const [animating, setAnimating] = useState(true)
   const [loadingComplete, setLoadingComplete] = useState(false)
+  const listRef = useRef<HTMLDivElement>(null)
 
   // Ensure loading screen shows for minimum duration
   useEffect(() => {
@@ -181,9 +183,11 @@ export default function AddKanji({ locked, onUnlock, onRemove, onClose, onStar, 
       </div>
 
       {/* List */}
+      <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex' }}>
       <div
-        className="scroll flex-1"
-        style={{ background: '#F4F4F1', touchAction: 'pan-y' }}
+        ref={listRef}
+        className="scroll"
+        style={{ flex: 1, background: '#F4F4F1', touchAction: 'pan-y' }}
       >
         {!loadingComplete ? (
           <div className="flex flex-col items-center py-20" style={{ color: 'var(--text3)' }}>
@@ -221,6 +225,8 @@ export default function AddKanji({ locked, onUnlock, onRemove, onClose, onStar, 
             ))}
           </div>
         )}
+      </div>
+      <FastScrollbar scrollRef={listRef} />
       </div>
 
       {/* Detail */}
