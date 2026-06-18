@@ -1,0 +1,164 @@
+[
+  {
+    "file": "kanjiN4",
+    "kanji": "米",
+    "old": "{ rank:61, k:'米', level:'N4', meanings:['arroz','EE.UU.'], on:['マイ','ベイ'], kun:['こめ'],\n    words:[{w:'お米',f:'おこめ',m:'arroz',l:'N5'},{w:'米国',f:'べいこく',m:'Estados Unidos',l:'N4'},]},",
+    "new": "{ rank:61, k:'米', level:'N5', meanings:['arroz','EE.UU.'], on:['マイ','ベイ'], kun:['こめ'],\n    words:[{w:'お米',f:'おこめ',m:'arroz',l:'N5'},{w:'米国',f:'べいこく',m:'Estados Unidos',l:'N4'},]},"
+  },
+  {
+    "file": "kanjiN4",
+    "kanji": "力",
+    "old": "{ rank:62, k:'力', level:'N4', meanings:['fuerza','poder'], on:['リョク','リキ'], kun:['ちから'],\n    words:[{w:'力',f:'ちから',m:'fuerza',l:'N5'},{w:'努力',f:'どりょく',m:'esfuerzo',l:'N4'},{w:'協力',f:'きょうりょく',m:'cooperación',l:'N4'},]},",
+    "new": "{ rank:62, k:'力', level:'N5', meanings:['fuerza','poder'], on:['リョク','リキ'], kun:['ちから'],\n    words:[{w:'力',f:'ちから',m:'fuerza',l:'N5'},{w:'努力',f:'どりょく',m:'esfuerzo',l:'N4'},{w:'協力',f:'きょうりょく',m:'cooperación',l:'N4'},]},"
+  },
+  {
+    "file": "kanjiN4",
+    "kanji": "田",
+    "old": "{ rank:90, k:'田', level:'N4', meanings:['arrozal','campo'], on:['デン'], kun:['た'],\n    words:[{w:'田んぼ',f:'たんぼ',m:'campo de arroz',l:'N5'},{w:'田舎',f:'いなか',m:'campo / zona rural',l:'N4'}]},",
+    "new": "{ rank:90, k:'田', level:'N5', meanings:['arrozal','campo'], on:['デン'], kun:['た'],\n    words:[{w:'田んぼ',f:'たんぼ',m:'campo de arroz',l:'N5'},{w:'田舎',f:'いなか',m:'campo / zona rural',l:'N4'}]},"
+  },
+  {
+    "file": "kanjiN4",
+    "kanji": "字",
+    "old": "{ rank:485, k:'字', level:'N4', meanings:['carácter','letra'], on:['ジ'], kun:['あざ'],\n    words:[{w:'漢字',f:'かんじ',m:'kanji',l:'N5'},{w:'文字',f:'もじ',m:'carácter / letra',l:'N4'},{w:'数字',f:'すうじ',m:'número',l:'N4'}]},",
+    "new": "{ rank:485, k:'字', level:'N5', meanings:['carácter','letra'], on:['ジ'], kun:['あざ'],\n    words:[{w:'漢字',f:'かんじ',m:'kanji',l:'N5'},{w:'文字',f:'もじ',m:'carácter / letra',l:'N4'},{w:'数字',f:'すうじ',m:'número',l:'N4'}]},"
+  },
+  {
+    "file": "kanjiN4",
+    "kanji": "物",
+    "old": "{ rank:215, k:'物', level:'N4', meanings:['cosa','objeto','asunto'], on:['ブツ','モツ'], kun:['もの'],\n    words:[{w:'食べ物',f:'たべもの',m:'comida',l:'N5'},{w:'飲み物',f:'のみもの',m:'bebida',l:'N5'},{w:'荷物',f:'にもつ',m:'equipaje',l:'N4'},{w:'物語',f:'ものがたり',m:'historia / cuento',l:'N4'}]},",
+    "new": "{ rank:215, k:'物', level:'N5', meanings:['cosa','objeto','asunto'], on:['ブツ','モツ'], kun:['もの'],\n    words:[{w:'食べ物',f:'たべもの',m:'comida',l:'N5'},{w:'飲み物',f:'のみもの',m:'bebida',l:'N5'},{w:'荷物',f:'にもつ',m:'equipaje',l:'N4'},{w:'物語',f:'ものがたり',m:'historia / cuento',l:'N4'}]},"
+  },
+  {
+    "file": "kanjiN4",
+    "kanji": "夕",
+    "old": "{ rank:924, k:'夕', level:'N4', meanings:['tarde','atardecer'], on:['セキ'], kun:['ゆう'],\n    words:[{w:'夕方',f:'ゆうがた',m:'tarde / atardecer',l:'N5'},{w:'夕食',f:'ゆうしょく',m:'cena',l:'N5'},{w:'夕日',f:'ゆうひ',m:'sol del atardecer',l:'N4'},{w:'夕暮れ',f:'ゆうぐれ',m:'anochecer',l:'N4'}]},",
+    "new": "{ rank:924, k:'夕', level:'N5', meanings:['tarde','atardecer'], on:['セキ'], kun:['ゆう'],\n    words:[{w:'夕方',f:'ゆうがた',m:'tarde / atardecer',l:'N5'},{w:'夕食',f:'ゆうしょく',m:'cena',l:'N5'},{w:'夕日',f:'ゆうひ',m:'sol del atardecer',l:'N4'},{w:'夕暮れ',f:'ゆうぐれ',m:'anochecer',l:'N4'}]},"
+  },
+  {
+    "file": "kanjiN4",
+    "kanji": "肉",
+    "old": "{ rank:986, k:'肉', level:'N4', meanings:['carne'], on:['ニク'], kun:[],\n    words:[{w:'牛肉',f:'ぎゅうにく',m:'carne de vaca',l:'N5'},]},",
+    "new": "{ rank:986, k:'肉', level:'N5', meanings:['carne'], on:['ニク'], kun:[],\n    words:[{w:'牛肉',f:'ぎゅうにく',m:'carne de vaca',l:'N5'},]},"
+  },
+  {
+    "file": "kanjiN4",
+    "kanji": "茶",
+    "old": "{ rank:1116, k:'茶', level:'N4', meanings:['té'], on:['チャ','サ'], kun:[],\n    words:[{w:'お茶',f:'おちゃ',m:'té',l:'N5'},{w:'茶色',f:'ちゃいろ',m:'color marrón',l:'N5'},{w:'紅茶',f:'こうちゃ',m:'té negro',l:'N4'},{w:'茶道',f:'さどう',m:'ceremonia del té',l:'N4'}]},",
+    "new": "{ rank:1116, k:'茶', level:'N5', meanings:['té'], on:['チャ','サ'], kun:[],\n    words:[{w:'お茶',f:'おちゃ',m:'té',l:'N5'},{w:'茶色',f:'ちゃいろ',m:'color marrón',l:'N5'},{w:'紅茶',f:'こうちゃ',m:'té negro',l:'N4'},{w:'茶道',f:'さどう',m:'ceremonia del té',l:'N4'}]},"
+  },
+  {
+    "file": "kanjiN4",
+    "kanji": "牛",
+    "old": "{ rank:1202, k:'牛', level:'N4', meanings:['vaca','buey'], on:['ギュウ'], kun:['うし'],\n    words:[{w:'牛乳',f:'ぎゅうにゅう',m:'leche',l:'N5'},{w:'牛肉',f:'ぎゅうにく',m:'carne de vaca',l:'N5'},{w:'牛丼',f:'ぎゅうどん',m:'cuenco de arroz con carne',l:'N4'}]},",
+    "new": "{ rank:1202, k:'牛', level:'N5', meanings:['vaca','buey'], on:['ギュウ'], kun:['うし'],\n    words:[{w:'牛乳',f:'ぎゅうにゅう',m:'leche',l:'N5'},{w:'牛肉',f:'ぎゅうにく',m:'carne de vaca',l:'N5'},{w:'牛丼',f:'ぎゅうどん',m:'cuenco de arroz con carne',l:'N4'}]},"
+  },
+  {
+    "file": "kanjiN4",
+    "kanji": "明",
+    "old": "{ rank:67, k:'明', level:'N4', meanings:['brillante','claro','mañana'], on:['メイ','ミョウ'], kun:['あか.るい','あき.らか'],\n    words:[{w:'明日',f:'あした',m:'mañana',l:'N5'},{w:'明るい',f:'あかるい',m:'brillante / alegre',l:'N5'},{w:'説明',f:'せつめい',m:'explicación',l:'N4'},]},",
+    "new": "{ rank:67, k:'明', level:'N5', meanings:['brillante','claro','mañana'], on:['メイ','ミョウ'], kun:['あか.るい','あき.らか'],\n    words:[{w:'明日',f:'あした',m:'mañana',l:'N5'},{w:'明るい',f:'あかるい',m:'brillante / alegre',l:'N5'},{w:'説明',f:'せつめい',m:'explicación',l:'N4'},]},"
+  },
+  {
+    "file": "kanjiN4",
+    "kanji": "体",
+    "old": "{ rank:88, k:'体', level:'N4', meanings:['cuerpo'], on:['タイ','テイ'], kun:['からだ'],\n    words:[{w:'体',f:'からだ',m:'cuerpo',l:'N5'},{w:'体育',f:'たいいく',m:'educación física',l:'N4'},{w:'体験',f:'たいけん',m:'experiencia',l:'N4'},{w:'全体',f:'ぜんたい',m:'totalidad / conjunto',l:'N4'},]},",
+    "new": "{ rank:88, k:'体', level:'N5', meanings:['cuerpo'], on:['タイ','テイ'], kun:['からだ'],\n    words:[{w:'体',f:'からだ',m:'cuerpo',l:'N5'},{w:'体育',f:'たいいく',m:'educación física',l:'N4'},{w:'体験',f:'たいけん',m:'experiencia',l:'N4'},{w:'全体',f:'ぜんたい',m:'totalidad / conjunto',l:'N4'},]},"
+  },
+  {
+    "file": "kanjiN4",
+    "kanji": "元",
+    "old": "{ rank:192, k:'元', level:'N4', meanings:['origen','comienzo','antes'], on:['ゲン','ガン'], kun:['もと'],\n    words:[{w:'元気',f:'げんき',m:'energía / salud',l:'N5'},{w:'元々',f:'もともと',m:'originalmente',l:'N4'},{w:'元日',f:'がんじつ',m:'día de año nuevo',l:'N4'},{w:'地元',f:'じもと',m:'local / de la zona',l:'N4'}]},",
+    "new": "{ rank:192, k:'元', level:'N5', meanings:['origen','comienzo','antes'], on:['ゲン','ガン'], kun:['もと'],\n    words:[{w:'元気',f:'げんき',m:'energía / salud',l:'N5'},{w:'元々',f:'もともと',m:'originalmente',l:'N4'},{w:'元日',f:'がんじつ',m:'día de año nuevo',l:'N4'},{w:'地元',f:'じもと',m:'local / de la zona',l:'N4'}]},"
+  },
+  {
+    "file": "kanjiN4",
+    "kanji": "町",
+    "old": "{ rank:292, k:'町', level:'N4', meanings:['ciudad','barrio','manzana'], on:['チョウ'], kun:['まち'],\n    words:[{w:'町',f:'まち',m:'ciudad / barrio',l:'N5'},{w:'下町',f:'したまち',m:'barrio antiguo',l:'N4'}]},",
+    "new": "{ rank:292, k:'町', level:'N5', meanings:['ciudad','barrio','manzana'], on:['チョウ'], kun:['まち'],\n    words:[{w:'町',f:'まち',m:'ciudad / barrio',l:'N5'},{w:'下町',f:'したまち',m:'barrio antiguo',l:'N4'}]},"
+  },
+  {
+    "file": "kanjiN4",
+    "kanji": "音",
+    "old": "{ rank:491, k:'音', level:'N4', meanings:['sonido'], on:['オン','イン'], kun:['おと','ね'],\n    words:[{w:'音楽',f:'おんがく',m:'música',l:'N5'},{w:'音読み',f:'おんよみ',m:'lectura on del kanji',l:'N5'},{w:'発音',f:'はつおん',m:'pronunciación',l:'N4'},{w:'音声',f:'おんせい',m:'voz / sonido',l:'N4'},]},",
+    "new": "{ rank:491, k:'音', level:'N5', meanings:['sonido'], on:['オン','イン'], kun:['おと','ね'],\n    words:[{w:'音楽',f:'おんがく',m:'música',l:'N5'},{w:'音読み',f:'おんよみ',m:'lectura on del kanji',l:'N5'},{w:'発音',f:'はつおん',m:'pronunciación',l:'N4'},{w:'音声',f:'おんせい',m:'voz / sonido',l:'N4'},]},"
+  },
+  {
+    "file": "kanjiN4",
+    "kanji": "暗",
+    "old": "{ rank:1040, k:'暗', level:'N4', meanings:['oscuro'], on:['アン'], kun:['くら.い'],\n    words:[{w:'暗い',f:'くらい',m:'oscuro',l:'N5'},{w:'暗記',f:'あんき',m:'memorización',l:'N4'},]},",
+    "new": "{ rank:1040, k:'暗', level:'N5', meanings:['oscuro'], on:['アン'], kun:['くら.い'],\n    words:[{w:'暗い',f:'くらい',m:'oscuro',l:'N5'},{w:'暗記',f:'あんき',m:'memorización',l:'N4'},]},"
+  },
+  {
+    "file": "kanjiN3",
+    "kanji": "内",
+    "old": "{ rank:304, k:'内', level:'N3', meanings:['interior','dentro'], on:['ナイ','ダイ'], kun:['うち'],\n    words:[{w:'案内',f:'あんない',m:'guía / información',l:'N4'},{w:'内容',f:'ないよう',m:'contenido',l:'N3'},{w:'国内',f:'こくない',m:'interior del país',l:'N3'}]},",
+    "new": "{ rank:304, k:'内', level:'N5', meanings:['interior','dentro'], on:['ナイ','ダイ'], kun:['うち'],\n    words:[{w:'案内',f:'あんない',m:'guía / información',l:'N4'},{w:'内容',f:'ないよう',m:'contenido',l:'N3'},{w:'国内',f:'こくない',m:'interior del país',l:'N3'}]},"
+  },
+  {
+    "file": "kanjiN3",
+    "kanji": "石",
+    "old": "{ rank:408, k:'石', level:'N3', meanings:['piedra','roca'], on:['セキ','シャク','コク'], kun:['いし'],\n    words:[{w:'石',f:'いし',m:'piedra',l:'N5'},{w:'磁石',f:'じしゃく',m:'imán',l:'N3'},{w:'化石',f:'かせき',m:'fósil',l:'N3'}]},",
+    "new": "{ rank:408, k:'石', level:'N5', meanings:['piedra','roca'], on:['セキ','シャク','コク'], kun:['いし'],\n    words:[{w:'石',f:'いし',m:'piedra',l:'N5'},{w:'磁石',f:'じしゃく',m:'imán',l:'N3'},{w:'化石',f:'かせき',m:'fósil',l:'N3'}]},"
+  },
+  {
+    "file": "kanjiN3",
+    "kanji": "王",
+    "old": "{ rank:511, k:'王', level:'N3', meanings:['rey','monarca'], on:['オウ'], kun:[],\n    words:[{w:'王様',f:'おうさま',m:'rey',l:'N4'},{w:'王国',f:'おうこく',m:'reino',l:'N3'},{w:'女王',f:'じょおう',m:'reina',l:'N3'}]},",
+    "new": "{ rank:511, k:'王', level:'N5', meanings:['rey','monarca'], on:['オウ'], kun:[],\n    words:[{w:'王様',f:'おうさま',m:'rey',l:'N4'},{w:'王国',f:'おうこく',m:'reino',l:'N3'},{w:'女王',f:'じょおう',m:'reina',l:'N3'}]},"
+  },
+  {
+    "file": "kanjiN3",
+    "kanji": "好",
+    "old": "{ rank:435, k:'好', level:'N3', meanings:['gustar','afición','favorable'], on:['コウ'], kun:['この.む','す.き'],\n    words:[{w:'好き',f:'すき',m:'gustar',l:'N5'},{w:'友好',f:'ゆうこう',m:'amistad',l:'N4'},{w:'好奇心',f:'こうきしん',m:'curiosidad',l:'N3'}]},",
+    "new": "{ rank:435, k:'好', level:'N5', meanings:['gustar','afición','favorable'], on:['コウ'], kun:['この.む','す.き'],\n    words:[{w:'好き',f:'すき',m:'gustar',l:'N5'},{w:'友好',f:'ゆうこう',m:'amistad',l:'N4'},{w:'好奇心',f:'こうきしん',m:'curiosidad',l:'N3'}]},"
+  },
+  {
+    "file": "kanjiN2",
+    "kanji": "竹",
+    "old": "{ rank:858, k:'竹', level:'N2', meanings:['bambú'], on:['チク'], kun:['たけ'],\n    words:[{w:'竹',f:'たけ',m:'bambú',l:'N4'},]},",
+    "new": "{ rank:858, k:'竹', level:'N5', meanings:['bambú'], on:['チク'], kun:['たけ'],\n    words:[{w:'竹',f:'たけ',m:'bambú',l:'N4'},]},"
+  },
+  {
+    "file": "kanjiN2",
+    "kanji": "虫",
+    "old": "{ rank:911, k:'虫', level:'N2', meanings:['insecto / bicho'], on:['チュウ'], kun:['むし'],\n    words:[{w:'虫',f:'むし',m:'insecto',l:'N5'},{w:'虫歯',f:'むしば',m:'caries',l:'N3'}]},",
+    "new": "{ rank:911, k:'虫', level:'N5', meanings:['insecto / bicho'], on:['チュウ'], kun:['むし'],\n    words:[{w:'虫',f:'むし',m:'insecto',l:'N5'},{w:'虫歯',f:'むしば',m:'caries',l:'N3'}]},"
+  },
+  {
+    "file": "kanjiN2",
+    "kanji": "門",
+    "old": "{ rank:965, k:'門', level:'N2', meanings:['puerta / entrada'], on:['モン'], kun:['かど'],\n    words:[{w:'門',f:'もん',m:'puerta',l:'N4'},{w:'専門',f:'せんもん',m:'especialidad',l:'N3'}]},",
+    "new": "{ rank:965, k:'門', level:'N5', meanings:['puerta / entrada'], on:['モン'], kun:['かど'],\n    words:[{w:'門',f:'もん',m:'puerta',l:'N4'},{w:'専門',f:'せんもん',m:'especialidad',l:'N3'}]},"
+  },
+  {
+    "file": "kanjiN2",
+    "kanji": "林",
+    "old": "{ rank:765, k:'林', level:'N2', meanings:['bosque'], on:['リン'], kun:['はやし'],\n    words:[{w:'林',f:'はやし',m:'bosque pequeño',l:'N4'},]},",
+    "new": "{ rank:765, k:'林', level:'N5', meanings:['bosque'], on:['リン'], kun:['はやし'],\n    words:[{w:'林',f:'はやし',m:'bosque pequeño',l:'N4'},]},"
+  },
+  {
+    "file": "kanjiN2",
+    "kanji": "森",
+    "old": "{ rank:776, k:'森', level:'N2', meanings:['bosque denso'], on:['シン'], kun:['もり'],\n    words:[{w:'森',f:'もり',m:'bosque',l:'N4'},]},",
+    "new": "{ rank:776, k:'森', level:'N5', meanings:['bosque denso'], on:['シン'], kun:['もり'],\n    words:[{w:'森',f:'もり',m:'bosque',l:'N4'},]},"
+  },
+  {
+    "file": "kanjiN2",
+    "kanji": "貝",
+    "old": "{ rank:933, k:'貝', level:'N2', meanings:['concha / marisco'], on:['カイ'], kun:['かい'],\n    words:[{w:'貝',f:'かい',m:'concha',l:'N4'},]},",
+    "new": "{ rank:933, k:'貝', level:'N5', meanings:['concha / marisco'], on:['カイ'], kun:['かい'],\n    words:[{w:'貝',f:'かい',m:'concha',l:'N4'},]},"
+  },
+  {
+    "file": "kanjiN2",
+    "kanji": "寺",
+    "old": "{ rank:702, k:'寺', level:'N2', meanings:['templo budista'], on:['ジ'], kun:['てら'],\n    words:[{w:'お寺',f:'おてら',m:'templo budista',l:'N4'},]},",
+    "new": "{ rank:702, k:'寺', level:'N5', meanings:['templo budista'], on:['ジ'], kun:['てら'],\n    words:[{w:'お寺',f:'おてら',m:'templo budista',l:'N4'},]},"
+  },
+  {
+    "file": "kanjiN2",
+    "kanji": "岩",
+    "old": "{ rank:710, k:'岩', level:'N2', meanings:['roca'], on:['ガン'], kun:['いわ'],\n    words:[{w:'岩',f:'いわ',m:'roca',l:'N4'},]},",
+    "new": "{ rank:710, k:'岩', level:'N5', meanings:['roca'], on:['ガン'], kun:['いわ'],\n    words:[{w:'岩',f:'いわ',m:'roca',l:'N4'},]},"
+  }
+]

@@ -126,6 +126,13 @@ function WordSheet({ word, onClose, isStarredWord, isStarredKanji, onStarWord, o
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={SHEET}
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.3 }}
+        dragDirectionLock
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 60 || info.velocity.y > 500) onClose()
+        }}
       >
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1">
@@ -271,11 +278,19 @@ export default function Detail({
   const [localUnlocked,    setLocalUnlocked]    = useState(unlocked)
 
   useEffect(() => {
+    setAnimating(true)
     scrollRef.current?.scrollTo(0, 0)
     setSelectedWord(null)
     setShowRemoveConfirm(false)
     setDisplayLevel(kanji.level)
   }, [kanji.k])
+
+  // Fallback: ensure animation completes
+  useEffect(() => {
+    if (!animating) return
+    const timer = setTimeout(() => setAnimating(false), 350)
+    return () => clearTimeout(timer)
+  }, [animating])
 
   function showSnack(msg: string) {
     setSnackbar(msg)
@@ -505,6 +520,13 @@ export default function Detail({
                 animate={{ y: 0 }}
                 exit={{ y: '100%' }}
                 transition={SHEET}
+                drag="y"
+                dragConstraints={{ top: 0, bottom: 0 }}
+                dragElastic={{ top: 0, bottom: 0.3 }}
+                dragDirectionLock
+                onDragEnd={(_, info) => {
+                  if (info.offset.y > 60 || info.velocity.y > 500) setShowRemoveConfirm(false)
+                }}
               >
                 {/* Handle */}
                 <div className="flex justify-center pt-3 pb-1">
@@ -577,6 +599,13 @@ export default function Detail({
                 animate={{ y: 0 }}
                 exit={{ y: '100%' }}
                 transition={SHEET}
+                drag="y"
+                dragConstraints={{ top: 0, bottom: 0 }}
+                dragElastic={{ top: 0, bottom: 0.3 }}
+                dragDirectionLock
+                onDragEnd={(_, info) => {
+                  if (info.offset.y > 60 || info.velocity.y > 500) setShowLevelSheet(false)
+                }}
               >
                 {/* Handle */}
                 <div className="flex justify-center pt-3 pb-1" style={{ flexShrink: 0 }}>
@@ -746,26 +775,29 @@ export default function Detail({
         document.body,
       )}
 
-      {/* Snackbar */}
-      <AnimatePresence>
-        {snackbar && (
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 24 }}
-            transition={{ type: 'spring', damping: 30, stiffness: 380 }}
-            style={{
-              position: 'absolute', bottom: 'calc(18px)',
-              left: 16, right: 16, zIndex: 62,
-              background: '#1c1c1e', color: '#fff', borderRadius: 12,
-              padding: '16px 16px', fontSize: 14, textAlign: 'left',
-              pointerEvents: 'none',
-            }}
-          >
-            {snackbar}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Snackbar - Portal to escape transform context */}
+      {createPortal(
+        <AnimatePresence>
+          {snackbar && (
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 24 }}
+              transition={{ type: 'spring', damping: 30, stiffness: 380 }}
+              style={{
+                position: 'fixed', bottom: 'calc(18px + env(safe-area-inset-bottom))',
+                left: 16, right: 16, zIndex: 999,
+                background: '#1c1c1e', color: '#fff', borderRadius: 12,
+                padding: '16px 16px', fontSize: 14, textAlign: 'left',
+                pointerEvents: 'none',
+              }}
+            >
+              {snackbar}
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
 
       {/* Bottom sheet */}
       <AnimatePresence>

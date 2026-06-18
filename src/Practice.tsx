@@ -54,7 +54,19 @@ export default function Practice({ visible, starredKanji, starredWords, onSessio
   const pool = filter === 'important' ? basePool.filter(k => starredKanji.has(k.k))
              : basePool
 
-  const maxPool = pool.length
+  function getAvailableItemsCount() {
+    if (mode === 'A') {
+      return pool.length
+    } else {
+      // Para modo B, contar palabras disponibles
+      return basePool.flatMap(k => k.words
+        .filter(w => filter === 'important' ? starredWords.has(w.w) : true)
+      ).length
+    }
+  }
+
+  const availableItems = getAvailableItemsCount()
+  const maxPool = availableItems
 
   useEffect(() => {
     if (countPreset === 'all')      setCount(maxPool)
@@ -93,7 +105,7 @@ export default function Practice({ visible, starredKanji, starredWords, onSessio
 
   const canStart = countPreset !== null && count > 0 && (filter === 'all'
     ? levels.size > 0 && pool.length > 0
-    : pool.length > 0)
+    : availableItems > 0)
 
   return (
     <>

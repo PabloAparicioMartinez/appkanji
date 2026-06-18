@@ -24,7 +24,7 @@ export interface KanjiEdit {
   words?: CompoundWord[]
 }
 
-export type AppScreen = 'lista' | 'practicar'
+export type AppScreen = 'lista' | 'practicar' | 'anime'
 export type PracticeMode = 'A' | 'B'
 
 export interface SessionItem {

@@ -4,6 +4,7 @@ import type { AppScreen, ItemResult, JLPTLevel, KanjiEdit } from './types'
 import { KANJI } from './kanji'
 import Lista from './Lista'
 import Practice from './Practice'
+import Anime from './Anime'
 import Splash from './Splash'
 
 // ── Persistent state helpers ──────────────────────────────────────────────
@@ -75,6 +76,14 @@ function GridIcon({ active: _ }: { active: boolean }) {
       <rect x="14" y="3" width="7" height="7" rx="1.5"/>
       <rect x="3" y="14" width="7" height="7" rx="1.5"/>
       <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+    </svg>
+  )
+}
+
+function AnimeIcon({ active: _ }: { active: boolean }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
     </svg>
   )
 }
@@ -229,7 +238,8 @@ export default function App() {
   const lockedAll = kanjiWithOverrides.filter(k => !isUnlocked(k))
 
   const tabs = [
-    { id: 'lista'     as AppScreen, label: 'Mi lista',  Icon: ListIcon },
+    { id: 'lista'     as AppScreen, label: 'Kanji',     Icon: ListIcon },
+    { id: 'anime'     as AppScreen, label: 'Anime',     Icon: AnimeIcon },
     { id: 'practicar' as AppScreen, label: 'Practicar', Icon: GridIcon },
   ]
 
@@ -259,6 +269,8 @@ export default function App() {
                   starredKanji={starredKanji}
                   starredWords={starredWords}
                 />
+              : screen === 'anime'
+              ? <Anime />
               : <Practice
                   visible={visible}
                   starredKanji={starredKanji}

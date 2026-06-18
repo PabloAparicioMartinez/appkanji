@@ -44,6 +44,13 @@ export default function AddKanji({ locked, onUnlock, onRemove, onClose, onStar, 
     return () => clearTimeout(timer)
   }, [animating, loadingComplete])
 
+  // Fallback: ensure animation completes
+  useEffect(() => {
+    if (!animating) return
+    const timer = setTimeout(() => setAnimating(false), 400)
+    return () => clearTimeout(timer)
+  }, [animating])
+
   const q = search.toLowerCase().trim()
   const items = useMemo(() => {
     // Don't filter during animation to avoid blocking the entrance animation

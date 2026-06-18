@@ -231,6 +231,13 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
     showSnack(alreadyStarred ? `${item.kanji.k} quitado de "Importantes"` : `${item.kanji.k} añadido a "Importantes"`)
   }
 
+  function handleStarWord() {
+    if (!item?.word) return
+    const alreadyStarred = starredWords?.has(item.word.w) ?? false
+    onStarWord?.(item.word.w)
+    showSnack(alreadyStarred ? `${item.word.w} quitada de "Importantes"` : `${item.word.w} añadida a "Importantes"`)
+  }
+
   const pct   = session.length > 0 ? Math.round((correct / session.length) * 100) : 0
 
   return (
@@ -588,6 +595,20 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
                     </svg>
                   </motion.button>
                 )}
+                {!isA && item?.word && onStarWord && (
+                  <motion.button
+                    whileTap={{ backgroundColor: '#d0d0cd' }}
+                    onClick={handleStarWord}
+                    className="w-9 h-9 rounded-full flex items-center justify-center press"
+                    style={{ background: '#e5e5e2', border: 'none', cursor: 'pointer' }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24"
+                      fill={starredWords?.has(item.word.w) ? 'var(--text)' : 'none'}
+                      stroke="var(--text)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                  </motion.button>
+                )}
                 {isA && item?.kanji && (onChangeLevel || onEditKanji) && (
                   <motion.button
                     whileTap={{ backgroundColor: '#d0d0cd' }}
@@ -647,7 +668,17 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
                   </>
                 ) : item?.word ? (
                   <>
-                    <div className="font-jp-serif" style={{ fontSize: 112, lineHeight: 1, color: 'var(--text)' }}>
+                    <div className="font-jp-serif" style={{
+                      fontSize: item.word.w.length > 12 ? 64 : item.word.w.length > 8 ? 88 : 112,
+                      lineHeight: 1,
+                      color: 'var(--text)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      maxWidth: '100%',
+                      paddingLeft: 16,
+                      paddingRight: 16,
+                    }}>
                       {item.word.w}
                     </div>
                     <div style={{ marginTop: 24 }}>
