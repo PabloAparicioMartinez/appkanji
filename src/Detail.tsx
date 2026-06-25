@@ -31,7 +31,7 @@ const LEVEL_COLORS: Record<JLPTLevel, { main: string; bg: string }> = {
 }
 
 const IOS = { type: 'tween' as const, duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
-const SHEET = { type: 'tween' as const, duration: 0.24, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
+const SHEET = { type: 'tween' as const, duration: 0.34, ease: [0.32, 0.72, 0, 1] as [number, number, number, number] }
 
 function Badge({ level }: { level: JLPTLevel }) {
   const c = LEVEL_COLORS[level]

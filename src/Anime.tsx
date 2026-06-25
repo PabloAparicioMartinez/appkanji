@@ -1,41 +1,136 @@
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import FastScrollbar from './FastScrollbar'
-import { ANIME_DATA, type AnimeCategory, type AnimeEntry } from './animeData'
-
-const CATEGORY_COLORS: Record<AnimeCategory, { color: string; bg: string }> = {
-  'partícula':   { color: '#9333ea', bg: 'rgba(147, 51, 234, 0.12)' },
-  'vocabulario': { color: '#0284c7', bg: 'rgba(2, 132, 199, 0.12)'  },
-  'gramática':   { color: '#d97706', bg: 'rgba(217, 119, 6, 0.12)'  },
-}
+import { ANIME_DATA, type AnimeCategory, type AnimeEntry, type AnimeExample } from './animeData'
 
 const CATEGORY_LABELS: Record<AnimeCategory, string> = {
   'partícula':   'Partícula',
-  'vocabulario': 'Vocab',
+  'vocabulario': 'Vocabulario',
   'gramática':   'Gramática',
 }
 
-const ALL_CATEGORIES: AnimeCategory[] = ['partícula', 'vocabulario', 'gramática']
+// One color per category — used for stripe, filter chip, and detail badge
+const CATEGORY_COLOR: Record<AnimeCategory, string> = {
+  'partícula':   '#1c1c1e',
+  'vocabulario': '#636366',
+  'gramática':   '#8e8e93',
+}
+
+// Text color for active chips/badges — dark text on the lightest category
+function chipText(_bg: string) { return '#fff' }
 
 const IOS = { type: 'tween' as const, duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
 
-// ── Anime (list) ──────────────────────────────────────────────────────────
+// All searchable forms of an expression: each variant (split by ' / '),
+// without the ～ marker and without parentheticals, longest first.
+function variantsOf(jp: string): string[] {
+  return jp.split(' / ')
+    .map(s => s.replace(/（[^）]*）/g, '').replace(/～/g, '').trim())
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length)
+}
+
+// Finds the example (and the slice within it) that contains the expression so
+// it can be shown in bold. Falls back to a stem match for conjugated forms
+// (e.g. ～てしまう → 言ってしまった, ～そうだ → やばそう).
+function pickHighlight(examples: AnimeExample[], jp: string): { sentence: string; start: number; len: number } {
+  const vars = variantsOf(jp)
+  // 1) exact variant in any example (earliest example, longest variant wins)
+  for (const ex of examples) {
+    for (const v of vars) {
+      const i = ex.jp.indexOf(v)
+      if (i >= 0) return { sentence: ex.jp, start: i, len: v.length }
+    }
+  }
+  // 2) stem fallback: trim the conjugating tail down to a 2-char minimum
+  for (const ex of examples) {
+    for (const v of vars) {
+      for (let L = v.length - 1; L >= 2; L--) {
+        const i = ex.jp.indexOf(v.slice(0, L))
+        if (i >= 0) return { sentence: ex.jp, start: i, len: L }
+      }
+    }
+  }
+  return { sentence: examples[0]?.jp ?? '', start: -1, len: 0 }
+}
+
+// Converts "[漢字|reading]" markup to plain hiragana reading
+function toHiragana(furigana: string): string {
+  return furigana.replace(/\[([^\|]+)\|([^\]]+)\]/g, (_, _k, r) => r)
+}
+
+function BoldSentence({ sentence, start, len }: { sentence: string; start: number; len: number }) {
+  if (start < 0) return <span style={{ color: 'var(--text2)' }}>{sentence}</span>
+  return (
+    <>
+      <span style={{ color: 'var(--text2)' }}>{sentence.slice(0, start)}</span>
+      <strong style={{ color: 'var(--text)', fontWeight: 700 }}>{sentence.slice(start, start + len)}</strong>
+      <span style={{ color: 'var(--text2)' }}>{sentence.slice(start + len)}</span>
+    </>
+  )
+}
+
+// Frequency ranking — most common in anime first, regardless of category
+const FREQ_ORDER = new Map<string, number>([
+  ['よ', 1], ['ね / ねえ', 2], ['の', 3], ['やばい', 4], ['バカ', 5],
+  ['くそ', 6], ['マジ', 7], ['うるさい', 8], ['すごい / すごっ', 9],
+  ['～てしまう / ～ちゃう', 10], ['～んだ / ～なんだ', 11], ['～なきゃ / ～なければ', 12],
+  ['～てくれ / ～てくれよ', 13], ['はあ？', 14], ['だろ', 15], ['かな', 16],
+  ['なあ', 17], ['よね', 18], ['じゃん', 19], ['かよ', 20], ['ぜ', 21], ['ぞ', 22],
+  ['～な', 23], ['さ', 24], ['絶対', 25], ['覚悟', 26], ['本気', 27], ['まさか', 28],
+  ['ひどい', 29], ['ありえない', 30], ['仕方ない', 31], ['甘い', 32], ['黙れ', 33],
+  ['任せろ', 34], ['頑張れ', 35], ['～てやる', 36], ['～わけがない', 37],
+  ['～はずだ', 38], ['～じゃないか', 39], ['～に決まっている', 40],
+  ['～べきだ / ～べきじゃない', 41], ['めっちゃ', 42], ['ガチ', 43],
+  ['だぜ', 44], ['だぞ', 45], ['だと？', 46], ['もん / もの（文末）', 47],
+  ['し', 48], ['だって', 49], ['ったら / ってば', 50], ['てめえ', 51],
+  ['うざい', 52], ['なめるな', 53], ['ちくしょう', 54], ['化け物', 55],
+  ['仲間', 56], ['最強', 57], ['全力', 58], ['ヤツ', 59], ['別に', 60],
+  ['ふざけるな', 61], ['いい加減にしろ', 62], ['気にするな', 63],
+  ['すまない / すまん', 64], ['冗談', 65], ['諦めるな', 66], ['逃げるな', 67],
+  ['ちゃんと', 68], ['嘘つき', 69], ['～ものか', 70], ['～くせに', 71],
+  ['～てみせる', 72], ['～に違いない', 73], ['～っていうか', 74], ['～ても', 75],
+  ['～なんて', 76], ['～から（文末）', 77], ['～てはいられない', 78],
+  ['～そうだ（様態）', 79], ['～やがる', 80], ['～みたいだ / ～みたいな', 81],
+  ['なんか', 82], ['わ', 83], ['かい', 84], ['や（関西弁）', 85],
+  ['やれやれ', 86], ['ふん', 87], ['野郎', 88], ['貴様', 89], ['うそだろ', 90],
+  ['余裕', 91], ['無駄', 92], ['一体', 93], ['参った', 94], ['チッ', 95],
+  ['かわいそう', 96], ['ざまあ / ざまを見ろ', 97], ['勝手にしろ', 98],
+  ['どうせ', 99], ['なんでもない', 100], ['ほっとけ / ほっといて', 101],
+  ['調子に乗るな', 102], ['邪魔するな', 103], ['～だけど（文末）', 104],
+  ['～てたまるか', 105], ['～というものだ', 106], ['～ずにはいられない', 107],
+  ['～てでも', 108], ['～ぬ（古語）', 109], ['～っけ', 110], ['～ばよかった', 111],
+  ['～わけだ', 112], ['～に過ぎない', 113], ['～ものだ（懐古）', 114],
+  ['～っぽい', 115], ['～にしても', 116],
+])
+
+// ── Anime ─────────────────────────────────────────────────────────────────
 export default function Anime() {
-  const [search,   setSearch]   = useState('')
-  const [filter,   setFilter]   = useState<AnimeCategory | null>(null)
-  const [selected, setSelected] = useState<AnimeEntry | null>(null)
+  const [search,    setSearch]    = useState('')
+  const [catFilter, setCatFilter] = useState<AnimeCategory | null>(null)
+  const [selected,  setSelected]  = useState<AnimeEntry | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
   const q = search.toLowerCase().trim()
-  const items = ANIME_DATA.filter(e => {
-    if (filter && e.category !== filter) return false
-    if (!q) return true
-    return (
-      e.jp.includes(q) ||
-      (e.reading?.toLowerCase().includes(q) ?? false) ||
-      e.meaning.toLowerCase().includes(q)
-    )
-  })
+  const items = ANIME_DATA
+    .filter(e => {
+      if (catFilter && e.category !== catFilter) return false
+      if (!q) return true
+      return (
+        e.jp.includes(q) ||
+        (e.reading?.toLowerCase().includes(q) ?? false) ||
+        e.meaning.toLowerCase().includes(q) ||
+        e.examples.some(ex => ex.jp.includes(q) || ex.es.toLowerCase().includes(q))
+      )
+    })
+    .sort((a, b) => (FREQ_ORDER.get(a.jp) ?? 999) - (FREQ_ORDER.get(b.jp) ?? 999))
+
+  const CATS: Array<{ id: AnimeCategory | null; label: string }> = [
+    { id: null,          label: 'Todos' },
+    { id: 'partícula',   label: 'Partícula' },
+    { id: 'vocabulario', label: 'Vocabulario' },
+    { id: 'gramática',   label: 'Gramática' },
+  ]
 
   return (
     <div className="flex flex-col h-full">
@@ -65,55 +160,51 @@ export default function Anime() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar expresión, vocabulario…"
+            placeholder="Buscar partícula, vocabulario o gramática..."
             className="w-full text-[14px] outline-none"
             autoCapitalize="none"
             autoCorrect="off"
             style={{
               paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9,
-              background: '#e5e5e2',
-              border: 'none',
-              borderRadius: 10,
+              background: '#e5e5e2', border: 'none', borderRadius: 10,
               color: 'var(--text)', fontFamily: 'inherit',
             }}
           />
         </div>
       </div>
 
-      {/* Category filters */}
+      {/* Category filters — same pill style as Lista's level filters */}
       <div
         className="px-4 py-3"
-        style={{ background: '#F4F4F1', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}
+        style={{
+          background: '#F4F4F1',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 8,
+        }}
       >
-        <button
-          onClick={() => setFilter(null)}
-          style={{
-            padding: '7px 0', borderRadius: 20, fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
-            border: filter === null ? '1.5px solid transparent' : '1.5px solid #3a3a3c',
-            background: filter === null ? '#3a3a3c' : '#F4F4F1',
-            color: filter === null ? '#fff' : 'var(--text)',
-            opacity: 0.85, cursor: 'pointer',
-          }}
-        >
-          Todos
-        </button>
-
-        {ALL_CATEGORIES.map(cat => {
-          const { color } = CATEGORY_COLORS[cat]
-          const active = filter === cat
+        {CATS.map(c => {
+          const active = catFilter === c.id
+          const color = c.id ? CATEGORY_COLOR[c.id] : '#3a3a3c'
           return (
             <button
-              key={cat}
-              onClick={() => setFilter(f => f === cat ? null : cat)}
+              key={c.label}
+              onClick={() => setCatFilter(c.id)}
               style={{
-                padding: '7px 0', borderRadius: 20, fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+                padding: '7px 0',
+                borderRadius: 20,
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: '0.02em',
+                fontFamily: 'inherit',
                 border: active ? '1.5px solid transparent' : `1.5px solid ${color}`,
                 background: active ? color : '#F4F4F1',
-                color: active ? '#fff' : color,
-                opacity: 0.85, cursor: 'pointer',
+                color: active ? chipText(color) : color,
+                opacity: 0.85,
+                cursor: 'pointer',
               }}
             >
-              {CATEGORY_LABELS[cat]}
+              {c.label}
             </button>
           )
         })}
@@ -146,7 +237,7 @@ export default function Anime() {
         <FastScrollbar scrollRef={listRef} />
       </div>
 
-      {/* Detail screen */}
+      {/* Detail */}
       <AnimatePresence>
         {selected && (
           <AnimeDetail entry={selected} onBack={() => setSelected(null)} />
@@ -158,7 +249,21 @@ export default function Anime() {
 
 // ── AnimeRow ──────────────────────────────────────────────────────────────
 function AnimeRow({ entry, onClick }: { entry: AnimeEntry; onClick: () => void }) {
-  const { color } = CATEGORY_COLORS[entry.category]
+  const hl = pickHighlight(entry.examples, entry.jp)
+
+  const stripped = entry.jp.replace(/^～/, '')
+  // Use only the first variant (before ' / ') and strip parentheticals for sizing/display
+  const displayJp = stripped.split(' / ')[0].replace(/（[^）]*）/g, '').trim()
+  const n = displayJp.length
+  const jpFontSize =
+    n <= 1 ? 34 :
+    n <= 2 ? 30 :
+    n <= 3 ? 24 :
+    n <= 4 ? 19 :
+    n <= 5 ? 15 :
+    n <= 6 ? 13 :
+    n <= 7 ? 11 :
+    10
 
   return (
     <div
@@ -169,21 +274,34 @@ function AnimeRow({ entry, onClick }: { entry: AnimeEntry; onClick: () => void }
       {/* Category stripe */}
       <div style={{
         position: 'absolute', top: 0, left: 0, bottom: 0,
-        width: 6, background: color, opacity: 0.8,
+        width: 6, background: CATEGORY_COLOR[entry.category], opacity: 0.8,
       }} />
 
-      {/* Content */}
-      <div className="flex-1 min-w-0 py-3" style={{ paddingLeft: 22, paddingRight: 8 }}>
-        <div className="flex items-baseline gap-2">
-          <span className="font-jp-serif" style={{ fontSize: 24, lineHeight: 1.2, color: 'var(--text)' }}>
-            {entry.jp}
-          </span>
-          {entry.reading && (
-            <span style={{ fontSize: 13, color: 'var(--text3)' }}>{entry.reading}</span>
-          )}
+      {/* JP expression */}
+      <div
+        className="font-jp-serif text-center flex-shrink-0"
+        style={{
+          fontSize: jpFontSize,
+          lineHeight: 1,
+          width: 90,
+          paddingLeft: 12,
+          color: 'var(--text)',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+        }}
+      >
+        {displayJp}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0 py-2 pr-3" style={{ paddingLeft: 10 }}>
+        <div style={{ fontSize: 15, color: 'var(--text)' }} className="truncate">
+          <BoldSentence sentence={hl.sentence} start={hl.start} len={hl.len} />
         </div>
-        <div className="truncate" style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>
-          {entry.meaning}
+        <div className="flex items-center flex-wrap gap-x-3 mt-1" style={{ fontSize: 12, color: 'var(--text3)' }}>
+          <span style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em' }}>
+            {CATEGORY_LABELS[entry.category]}
+          </span>
         </div>
       </div>
 
@@ -196,10 +314,76 @@ function AnimeRow({ entry, onClick }: { entry: AnimeEntry; onClick: () => void }
   )
 }
 
+// ── ExampleItem ───────────────────────────────────────────────────────────
+function ExampleItem({ ex, isLast }: { ex: AnimeExample; isLast: boolean }) {
+  const [open,    setOpen]    = useState(false)
+  const [pressed, setPressed] = useState(false)
+
+  const hiragana = ex.furigana ? toHiragana(ex.furigana) : null
+
+  return (
+    <div
+      onPointerDown={() => setPressed(true)}
+      onPointerUp={() => setPressed(false)}
+      onPointerLeave={() => setPressed(false)}
+      onClick={() => setOpen(v => !v)}
+      style={{
+        padding: '12px 14px',
+        borderRadius: 10,
+        background: pressed ? '#d4d4d1' : '#e5e5e2',
+        marginBottom: isLast ? 0 : 6,
+        cursor: 'pointer',
+        userSelect: 'none',
+        transition: 'background 0.1s',
+      }}
+    >
+      {/* Sentence row + arrow */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+        <div className="font-jp-serif" style={{ fontSize: 17, color: 'var(--text)', lineHeight: 1.5, flex: 1 }}>
+          {ex.jp}
+        </div>
+        <svg
+          width="15" height="15" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+          style={{
+            color: 'var(--text3)',
+            flexShrink: 0,
+            marginTop: 5,
+            transform: open ? 'rotate(180deg)' : 'none',
+            transition: 'transform 0.2s',
+          }}
+        >
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </div>
+
+      {/* Expanded: furigana + translation */}
+      {open && (
+        <>
+          {hiragana && (
+            <div className="font-jp-serif" style={{ fontSize: 14, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>
+              {hiragana}
+            </div>
+          )}
+          <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 4, lineHeight: 1.5 }}>
+            {ex.es}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 // ── AnimeDetail ───────────────────────────────────────────────────────────
 function AnimeDetail({ entry, onBack }: { entry: AnimeEntry; onBack: () => void }) {
-  const { color, bg } = CATEGORY_COLORS[entry.category]
   const [animating, setAnimating] = useState(true)
+
+  // Particles like ぜ、ぞ、の etc. attach to something but lack ～ in data;
+  // grammar patterns already carry ～; vocabulary is standalone
+  const heroJp =
+    entry.category === 'partícula' && !entry.jp.startsWith('～')
+      ? '～' + entry.jp
+      : entry.jp
 
   return (
     <motion.div
@@ -245,23 +429,28 @@ function AnimeDetail({ entry, onBack }: { entry: AnimeEntry; onBack: () => void 
       <div className="scroll flex-1" style={{ touchAction: 'pan-y' }}>
 
         {/* Hero */}
-        <div className="text-center px-6 pt-6 pb-6">
+        <div className="text-center px-6 pt-4 pb-6">
           <div
-            className="font-jp-serif leading-none mb-4"
+            className="font-jp-serif leading-none mb-3"
             style={{ fontSize: 64, color: 'var(--text)', wordBreak: 'break-all' }}
           >
-            {entry.jp}
+            {heroJp}
           </div>
           {entry.reading && (
-            <div style={{ fontSize: 18, color: 'var(--text2)', marginBottom: 12 }}>
+            <div style={{ fontSize: 18, color: 'var(--text2)', marginBottom: 10 }}>
               {entry.reading}
             </div>
           )}
           <span style={{
             display: 'inline-block',
-            background: color, color: '#fff',
-            borderRadius: 20, padding: '6px 18px',
-            fontSize: 13, fontWeight: 600, letterSpacing: '0.04em', opacity: 0.85,
+            background: CATEGORY_COLOR[entry.category],
+            color: chipText(CATEGORY_COLOR[entry.category]),
+            borderRadius: 20,
+            padding: '5px 16px',
+            fontSize: 12,
+            fontWeight: 600,
+            letterSpacing: '0.04em',
+            opacity: 0.8,
           }}>
             {CATEGORY_LABELS[entry.category]}
           </span>
@@ -275,29 +464,43 @@ function AnimeDetail({ entry, onBack }: { entry: AnimeEntry; onBack: () => void 
           }}>
             Significado
           </div>
-          <p style={{ fontSize: 16, color: 'var(--text)', lineHeight: 1.55 }}>
-            {entry.meaning}
-          </p>
+          {(() => {
+            const nl = entry.meaning.indexOf('\n')
+            const rawTitle = nl >= 0 ? entry.meaning.slice(0, nl) : entry.meaning
+            const body     = nl >= 0 ? entry.meaning.slice(nl + 1) : ''
+            const title    = rawTitle.replace(/^«/, '').replace(/»$/, '')
+              .split(' / ').map(p => `"${p.trim()}"`).join(', ')
+            return (
+              <>
+                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', lineHeight: 1.4, marginBottom: body ? 8 : 0 }}>
+                  {title}
+                </p>
+                {body && (
+                  <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.65 }}>
+                    {body}
+                  </p>
+                )}
+              </>
+            )
+          })()}
         </div>
 
-        {/* Example */}
-        {entry.example && (
-          <div style={{ padding: '0 16px 32px' }}>
+        {/* Examples */}
+        {entry.examples.length > 0 && (
+          <div style={{ padding: '0 16px 40px' }}>
             <div style={{
               fontSize: 10, fontWeight: 400, color: 'var(--text3)',
-              textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10,
+              textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8,
             }}>
-              Ejemplo
+              Ejemplos
             </div>
-            <div style={{
-              background: bg,
-              borderRadius: 12, padding: '14px 16px',
-              borderLeft: `3px solid ${color}`,
-            }}>
-              <p style={{ fontSize: 15, color: 'var(--text)', lineHeight: 1.5 }}>
-                {entry.example}
-              </p>
-            </div>
+            {entry.examples.map((ex, i) => (
+              <ExampleItem
+                key={i}
+                ex={ex}
+                isLast={i === entry.examples.length - 1}
+              />
+            ))}
           </div>
         )}
       </div>

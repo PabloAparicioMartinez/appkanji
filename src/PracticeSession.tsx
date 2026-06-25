@@ -8,7 +8,7 @@ import { sortByLevelAndRank } from './wordUtils'
 import WordsEditor, { sanitizeEditedWords } from './WordsEditor'
 
 const IOS   = { type: 'tween' as const, duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
-const SHEET = { type: 'tween' as const, duration: 0.24, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }
+const SHEET = { type: 'tween' as const, duration: 0.34, ease: [0.32, 0.72, 0, 1] as [number, number, number, number] }
 
 interface FieldResult {
   autoCorrect: boolean
@@ -789,6 +789,13 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
                 animate={{ y: 0 }}
                 exit={{ y: '100%' }}
                 transition={SHEET}
+                drag="y"
+                dragConstraints={{ top: 0, bottom: 0 }}
+                dragElastic={{ top: 0, bottom: 0.3 }}
+                dragDirectionLock
+                onDragEnd={(_, info) => {
+                  if (info.offset.y > 60 || info.velocity.y > 500) setShowStopConfirm(false)
+                }}
               >
                 <div className="flex justify-center pt-3 pb-1">
                   <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)' }} />
@@ -853,6 +860,13 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
                 }}
                 initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
                 transition={SHEET}
+                drag="y"
+                dragConstraints={{ top: 0, bottom: 0 }}
+                dragElastic={{ top: 0, bottom: 0.3 }}
+                dragDirectionLock
+                onDragEnd={(_, info) => {
+                  if (info.offset.y > 60 || info.velocity.y > 500) setShowEditSheet(false)
+                }}
               >
                 <div className="flex justify-center pt-3 pb-1" style={{ flexShrink: 0 }}>
                   <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)' }} />

@@ -6,7 +6,7 @@ const LEVEL_COLORS: Record<JLPTLevel, string> = {
 }
 
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', borderRadius: 8, border: 'none',
+  width: '100%', padding: '10px 12px', borderRadius: 8, border: 'none',
   background: '#F4F4F1', color: 'var(--text)', fontSize: 14,
   fontFamily: 'inherit', outline: 'none',
 }
@@ -34,8 +34,8 @@ export default function WordsEditor({ words, onChange, defaultLevel }: Props) {
         <div
           key={i}
           style={{
-            background: '#e5e5e2', borderRadius: 12, padding: 10,
-            display: 'flex', flexDirection: 'column', gap: 6,
+            background: '#e5e5e2', borderRadius: 12, padding: 14,
+            display: 'flex', flexDirection: 'column', gap: 9,
           }}
         >
           <div style={{ display: 'flex', gap: 6 }}>
@@ -52,7 +52,7 @@ export default function WordsEditor({ words, onChange, defaultLevel }: Props) {
               onClick={() => removeWord(i)}
               aria-label="Eliminar palabra"
               style={{
-                width: 36, height: 36, borderRadius: 10,
+                width: 40, height: 40, borderRadius: 10,
                 background: '#d9d9d6', border: 'none', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
@@ -91,8 +91,8 @@ export default function WordsEditor({ words, onChange, defaultLevel }: Props) {
                   key={lvl}
                   onClick={() => updateWord(i, { l: lvl })}
                   style={{
-                    flex: 1, padding: '5px 0', borderRadius: 16,
-                    fontSize: 11, fontWeight: 600, letterSpacing: '0.03em',
+                    flex: 1, padding: '8px 0', borderRadius: 16,
+                    fontSize: 12, fontWeight: 600, letterSpacing: '0.03em',
                     fontFamily: 'inherit',
                     border: active ? '1.5px solid transparent' : `1.5px solid ${color}`,
                     background: active ? color : 'transparent',

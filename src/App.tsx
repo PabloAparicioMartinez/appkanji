@@ -89,12 +89,32 @@ function AnimeIcon({ active: _ }: { active: boolean }) {
 }
 
 
+// ── N3 kanjis that start unlocked (in Lista) by default ──────────────────
+const DEFAULT_UNLOCKED_N3 = new Set(
+  '起寝浴湯洗濯干活拾捨燃袋曜末昨翌予定用意' +
+  '熱冷温度材型焼器卵乳粉塩菜果豆缶杯枚匹量' +
+  '頭顔首鼻呼吸息汗検査歯痛血液包帯救助死亡' +
+  '角曲折路追突転倒位置横央直線逆側注意橋進' +
+  '戦決勝負代表第回記録優賞秒差測順球打投点' +
+  '感情恋愛信想伝欲苦悩困難怒悲笑喜残念泣涙' +
+  '結婚紹介独身貯期約束必守式列祝酔永願幸福' +
+  '関係和付娘老婦姓仲君彼他初再久達個性各格'
+)
+
 // ── App ───────────────────────────────────────────────────────────────────
 export default function App() {
   const [splashDone,    setSplashDone]    = useState(false)
   const [screen,        setScreen]        = useState<AppScreen>('lista')
   // N3/N2/N1 explicitly added
-  const [unlockedN3,    setUnlockedN3]    = useState<Set<string>>(() => loadSet('unlocked_n3'))
+  const [unlockedN3,    setUnlockedN3]    = useState<Set<string>>(() => {
+    const stored = loadSet('unlocked_n3')
+    if (!localStorage.getItem('seeded_n3_v1')) {
+      DEFAULT_UNLOCKED_N3.forEach(k => stored.add(k))
+      saveSet('unlocked_n3', stored)
+      localStorage.setItem('seeded_n3_v1', '1')
+    }
+    return stored
+  })
   // N5/N4 explicitly removed
   const [removedBasic,  setRemovedBasic]  = useState<Set<string>>(() => loadSet('removed_basic'))
   // Starred kanjis and words
