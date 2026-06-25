@@ -1088,26 +1088,40 @@ function FieldInput({
 }
 
 function WordExample({ example }: { example: { word: string; furigana: string; meaning: string; level: JLPTLevel } }) {
-  const [expanded, setExpanded] = useState(false)
+  type State = 'closed' | 'furigana' | 'both'
+  const [state, setState] = useState<State>('closed')
   const levelColors: Record<JLPTLevel, string> = {
     N5: 'var(--n5)', N4: 'var(--n4)', N3: 'var(--n3)', N2: 'var(--n2)', N1: 'var(--n1)',
   }
   return (
     <div
-      onClick={() => setExpanded(e => !e)}
       style={{
         display: 'flex', alignItems: 'center',
-        cursor: 'pointer', padding: '4px 0',
-        position: 'relative',
+        padding: '4px 0', position: 'relative',
       }}
     >
       <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 3, background: levelColors[example.level], opacity: 0.8 }} />
-      <span className="font-jp-serif" style={{ fontSize: 15, color: 'var(--text)', paddingLeft: 13 }}>{example.word}</span>
-      {expanded && (
+      <span
+        className="font-jp-serif"
+        onClick={() => setState(s => s === 'closed' ? 'furigana' : 'closed')}
+        style={{ fontSize: 15, color: 'var(--text)', paddingLeft: 13, cursor: 'pointer' }}
+      >
+        {example.word}
+      </span>
+      {state !== 'closed' && (
         <span style={{ fontSize: 13, color: 'var(--text3)', display: 'flex', alignItems: 'baseline', gap: 4, marginLeft: 10 }}>
-          <span>({example.furigana})</span>
-          <span style={{ color: 'var(--text2)' }}>·</span>
-          <span style={{ color: 'var(--text2)' }}>{example.meaning}</span>
+          <span
+            onClick={e => { e.stopPropagation(); setState(s => s === 'furigana' ? 'both' : 'furigana') }}
+            style={{ cursor: 'pointer' }}
+          >
+            ({example.furigana})
+          </span>
+          {state === 'both' && (
+            <>
+              <span style={{ color: 'var(--text2)' }}>·</span>
+              <span style={{ color: 'var(--text2)' }}>{example.meaning}</span>
+            </>
+          )}
         </span>
       )}
     </div>
