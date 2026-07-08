@@ -7,6 +7,8 @@ interface Props {
   visible: Kanji[]
   starredKanji: Set<string>
   starredWords: Set<string>
+  weakKanji?: Set<string>
+  weakWords?: Set<string>
   onSessionResult: (results: ItemResult[]) => void
   onStar: (char: string) => void
   onStarWord: (word: string) => void
@@ -16,7 +18,7 @@ interface Props {
 }
 
 type Mode = PracticeMode
-type FilterType = 'all' | 'important'
+type FilterType = 'all' | 'important' | 'failed'
 
 const MODES = [
   { id: 'A' as Mode, title: 'Kanjis solos', subtitle: 'Ve un kanji y escribe su lectura y significado', icon: '漢' },
@@ -38,7 +40,7 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-export default function Practice({ visible, starredKanji, starredWords, onSessionResult, onStar, onStarWord, onRemove, onChangeLevel, onEditKanji }: Props) {
+export default function Practice({ visible, starredKanji, starredWords, weakKanji, weakWords, onSessionResult, onStar, onStarWord, onRemove, onChangeLevel, onEditKanji }: Props) {
   const [mode,        setMode]        = useState<Mode>('A')
   const [levels,      setLevels]      = useState<Set<JLPTLevel>>(new Set())
   const [count,       setCount]       = useState(0)
@@ -52,6 +54,7 @@ export default function Practice({ visible, starredKanji, starredWords, onSessio
     ? visible.filter(k => levels.has(k.level))
     : filter === 'all' ? [] : visible
   const pool = filter === 'important' ? basePool.filter(k => starredKanji.has(k.k))
+             : filter === 'failed' ? basePool.filter(k => weakKanji?.has(k.k) ?? false)
              : basePool
 
   function getAvailableItemsCount() {
@@ -60,7 +63,10 @@ export default function Practice({ visible, starredKanji, starredWords, onSessio
     } else {
       // Para modo B, contar palabras disponibles
       return basePool.flatMap(k => k.words
-        .filter(w => filter === 'important' ? starredWords.has(w.w) : true)
+        .filter(w => levels.size > 0 ? levels.has(w.l) : true)
+        .filter(w => filter === 'important' ? starredWords.has(w.w)
+                   : filter === 'failed' ? (weakWords?.has(w.w) ?? false)
+                   : true)
       ).length
     }
   }
@@ -95,7 +101,10 @@ export default function Practice({ visible, starredKanji, starredWords, onSessio
       items = shuffle(pool).slice(0, count).map(k => ({ type: 'A', kanji: k }))
     } else {
       const words: SessionItem[] = basePool.flatMap(k => k.words
-        .filter(w => filter === 'important' ? starredWords.has(w.w) : true)
+        .filter(w => levels.size > 0 ? levels.has(w.l) : true)
+        .filter(w => filter === 'important' ? starredWords.has(w.w)
+                   : filter === 'failed' ? (weakWords?.has(w.w) ?? false)
+                   : true)
         .map(w => ({ type: 'B' as const, word: w, kanji: k })))
       items = shuffle(words).slice(0, count)
     }
@@ -212,6 +221,7 @@ export default function Practice({ visible, starredKanji, starredWords, onSessio
               {([
                 { id: 'all'       as FilterType, title: 'Todos',      icon: '全' },
                 { id: 'important' as FilterType, title: 'Importantes', icon: '★' },
+                { id: 'failed'    as FilterType, title: 'Fallos',      icon: '弱' },
               ]).map(f => {
                 const active = filter === f.id
                 return (
@@ -220,8 +230,8 @@ export default function Practice({ visible, starredKanji, starredWords, onSessio
                     onClick={() => handleFilterChange(f.id)}
                     style={{
                       flex: 1,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      padding: '9px 8px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                      padding: '9px 4px',
                       borderRadius: 9,
                       background: active ? '#F4F4F1' : 'transparent',
                       boxShadow: active ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
@@ -229,8 +239,8 @@ export default function Practice({ visible, starredKanji, starredWords, onSessio
                       transition: 'background 0.15s ease',
                     }}
                   >
-                    <span className="font-jp-serif" style={{ fontSize: 16, color: active ? 'var(--text)' : 'var(--text2)', lineHeight: 1 }}>{f.icon}</span>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: active ? 'var(--text)' : 'var(--text2)' }}>{f.title}</span>
+                    <span className="font-jp-serif" style={{ fontSize: 15, color: active ? 'var(--text)' : 'var(--text2)', lineHeight: 1, flexShrink: 0 }}>{f.icon}</span>
+                    <span style={{ fontSize: 11.5, fontWeight: 600, color: active ? 'var(--text)' : 'var(--text2)', whiteSpace: 'nowrap' }}>{f.title}</span>
                   </button>
                 )
               })}

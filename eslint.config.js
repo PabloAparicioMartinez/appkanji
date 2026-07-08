@@ -19,5 +19,13 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // Allow intentionally-unused identifiers prefixed with "_"
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      // Intentional "reset state when a prop changes" effects in Detail/Practice
+      'react-hooks/set-state-in-effect': 'warn',
+      // Data helper co-located with its editor component (sanitizeEditedWords)
+      'react-refresh/only-export-components': 'warn',
+    },
   },
 ])

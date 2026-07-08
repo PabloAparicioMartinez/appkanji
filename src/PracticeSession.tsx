@@ -67,6 +67,7 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
   const [selectedKanji,   setSelectedKanji]   = useState<Kanji | null>(null)
   const [snackbar,        setSnackbar]        = useState('')
   const [hasInput,        setHasInput]        = useState(false)
+  const [finalResults,    setFinalResults]    = useState<SessionResult[]>([])
 
   const onRef          = useRef<HTMLInputElement>(null)
   const kunRef         = useRef<HTMLInputElement>(null)
@@ -83,6 +84,7 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
     setUserEvals([])
     setPhase('session')
     setHasInput(false)
+    setFinalResults([])
     if (onRef.current)   onRef.current.value   = ''
     if (kunRef.current)  kunRef.current.value  = ''
     if (meanRef.current) meanRef.current.value = ''
@@ -175,6 +177,7 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
 
     if (idx + 1 >= session.length) {
       onSessionResult?.(itemResultsRef.current)
+      setFinalResults([...sessionResultsRef.current])
       setPhase('results')
     } else {
       setIdx(i => i + 1)
@@ -293,18 +296,18 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
           {/* Scrollable content */}
           <div className="scroll flex-1" style={{ display: 'flex', flexDirection: 'column', paddingBottom: 20 }}>
             {/* Correctas section */}
-            {sessionResultsRef.current.filter(r => r.correct).length > 0 && (
+            {finalResults.filter(r => r.correct).length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <div style={{ padding: '10px 16px 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     Correctas
                   </span>
                   <span style={{ fontSize: 11, fontWeight: 600, color: '#fff', background: '#3a3a3c', borderRadius: 20, padding: '1px 7px' }}>
-                    {sessionResultsRef.current.filter(r => r.correct).length}
+                    {finalResults.filter(r => r.correct).length}
                   </span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {sessionResultsRef.current.filter(r => r.correct).map((sr, i) => {
+                  {finalResults.filter(r => r.correct).map((sr, i) => {
                     const item = sr.item
                     if (item.type === 'A' && item.kanji) {
                       const k = item.kanji
@@ -380,18 +383,18 @@ export default function PracticeSession({ session, onClose, onSessionResult, onS
             )}
 
             {/* Fallidas section */}
-            {sessionResultsRef.current.filter(r => !r.correct).length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', marginTop: sessionResultsRef.current.filter(r => r.correct).length > 0 ? 16 : 0 }}>
+            {finalResults.filter(r => !r.correct).length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', marginTop: finalResults.filter(r => r.correct).length > 0 ? 16 : 0 }}>
                 <div style={{ padding: '10px 16px 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     Incorrectas
                   </span>
                   <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)', background: '#e5e5e2', borderRadius: 20, padding: '1px 7px' }}>
-                    {sessionResultsRef.current.filter(r => !r.correct).length}
+                    {finalResults.filter(r => !r.correct).length}
                   </span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {sessionResultsRef.current.filter(r => !r.correct).map((sr, i) => {
+                  {finalResults.filter(r => !r.correct).map((sr, i) => {
                     const item = sr.item
                     if (item.type === 'A' && item.kanji) {
                       const k = item.kanji

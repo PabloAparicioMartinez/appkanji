@@ -35,6 +35,7 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
   const [onlyStarred, setOnlyStarred] = useState(false)
   const [selected, setSelected] = useState<Kanji | null>(null)
   const [showAddN3, setShowAddN3] = useState(false)
+  const [hideDetails, setHideDetails] = useState(false)
   const listRef = useRef<HTMLDivElement>(null)
 
   const q = search.toLowerCase().trim()
@@ -73,17 +74,40 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
         <div className="flex items-center justify-between mb-3">
           <h1 style={{ fontSize: 30, fontWeight: 700, color: 'var(--text)', lineHeight: '36px' }}>Kanjis</h1>
 
-          {/* + button */}
-          <button
-            onClick={() => setShowAddN3(true)}
-            className="w-9 h-9 rounded-full flex items-center justify-center press"
-            style={{ background: '#1c1c1e' }}
-            // style={{ background: '#3a3a3c' }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-              <path d="M12 5v14M5 12h14"/>
-            </svg>
-          </button>
+          <div className="flex items-center" style={{ gap: 8 }}>
+            {/* Toggle details visibility */}
+            <button
+              onClick={() => setHideDetails(v => !v)}
+              className="w-9 h-9 rounded-full flex items-center justify-center press"
+              style={{ background: '#e5e5e2', border: 'none' }}
+              aria-label={hideDetails ? 'Mostrar significados' : 'Ocultar significados'}
+            >
+              {hideDetails ? (
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth="1.71" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 12s3.6-6.5 9-6.5 9 6.5 9 6.5-3.6 6.5-9 6.5S3 12 3 12z"/>
+                  <line x1="9.8" y1="12" x2="14.2" y2="12"/>
+                  <line x1="3" y1="3" x2="21" y2="21"/>
+                </svg>
+              ) : (
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth="1.71" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 12s3.6-6.5 9-6.5 9 6.5 9 6.5-3.6 6.5-9 6.5S3 12 3 12z"/>
+                  <circle cx="12" cy="12" r="2.5"/>
+                </svg>
+              )}
+            </button>
+
+            {/* + button */}
+            <button
+              onClick={() => setShowAddN3(true)}
+              className="w-9 h-9 rounded-full flex items-center justify-center press"
+              style={{ background: '#1c1c1e' }}
+              // style={{ background: '#3a3a3c' }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Search */}
@@ -186,7 +210,9 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
               </svg>
             </div>
             <p style={{ fontSize: 14, color: 'var(--text3)' }}>
-              {onlyStarred && levels.size > 0
+              {q
+                ? 'No se encontraron kanjis'
+                : onlyStarred && levels.size > 0
                 ? `No hay kanjis importantes de ${levels.size === 1 ? 'este nivel' : 'estos niveles'}`
                 : onlyStarred
                 ? 'No hay kanjis marcados como importantes'
@@ -198,7 +224,7 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {items.map((k) => (
-              <KanjiRow key={k.k} kanji={k} onClick={() => setSelected(k)} />
+              <KanjiRow key={k.k} kanji={k} hideDetails={hideDetails} onClick={() => setSelected(k)} />
             ))}
           </div>
         )}
@@ -247,7 +273,7 @@ export default function Lista({ visible, lockedAll, isUnlocked, onUnlock, onRemo
 }
 
 // ── KanjiRow ──────────────────────────────────────────────────────────────
-function KanjiRow({ kanji, onClick }: { kanji: Kanji; onClick: () => void }) {
+function KanjiRow({ kanji, hideDetails, onClick }: { kanji: Kanji; hideDetails: boolean; onClick: () => void }) {
   const stripe = LEVEL_COLORS[kanji.level].stripe
 
   return (
@@ -269,7 +295,7 @@ function KanjiRow({ kanji, onClick }: { kanji: Kanji; onClick: () => void }) {
       </div>
 
       {/* Info */}
-      <div className="flex-1 min-w-0 py-2 pr-3" style={{ paddingLeft: 10 }}>
+      <div className="flex-1 min-w-0 py-2 pr-3" style={{ paddingLeft: 10, visibility: hideDetails ? 'hidden' : 'visible' }}>
         <div style={{ fontSize: 15, color: 'var(--text)' }} className="truncate">
           {kanji.meanings.join(', ')}
         </div>

@@ -6,7 +6,7 @@ import { kanjiN2 } from './kanjiN2'
 import { kanjiN1 } from './kanjiN1'
 
 // Kanji count by JLPT level:
-// N5: 103 | N4: 164 | N3: 355 | N2: 364 | N1: 50 (Total: 1036)
+// N5: 119 | N4: 207 | N3: 349 | N2: 203 | N1: 44 (Total: 922)
 
 const RAW: Kanji[] = [
   ...kanjiN5,

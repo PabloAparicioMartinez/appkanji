@@ -48,8 +48,8 @@ function Badge({ level }: { level: JLPTLevel }) {
 }
 
 // ── WordRow (compound word row) ─────────────────────────────────────────────
-function WordRow({ word, onClick, onStar, starred }: {
-  word: CompoundWord; onClick: () => void; onStar?: (w: string) => void; starred?: boolean
+function WordRow({ word, onClick, onStar, starred, hideDetails }: {
+  word: CompoundWord; onClick: () => void; onStar?: (w: string) => void; starred?: boolean; hideDetails?: boolean
 }) {
   const lc = LEVEL_COLORS[word.l]
   return (
@@ -63,7 +63,7 @@ function WordRow({ word, onClick, onStar, starred }: {
         style={{ fontSize: 22, lineHeight: 1, paddingLeft: 16, paddingRight: 10, color: 'var(--text)', whiteSpace: 'nowrap' }}>
         {word.w}
       </div>
-      <div className="flex-1 min-w-0 py-3 pr-1">
+      <div className="flex-1 min-w-0 py-3 pr-1" style={{ visibility: hideDetails ? 'hidden' : 'visible' }}>
         <div style={{ fontSize: 15, color: 'var(--text)' }} className="truncate">{word.m}</div>
         <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 3 }}>{word.f}</div>
       </div>
@@ -265,6 +265,7 @@ export default function Detail({
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [selectedWord, setSelectedWord] = useState<CompoundWord | null>(null)
+  const [hideWordDetails, setHideWordDetails] = useState(false)
   const [snackbar, setSnackbar] = useState('')
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false)
   const [showLevelSheet,   setShowLevelSheet]   = useState(false)
@@ -309,6 +310,28 @@ export default function Detail({
     showSnack(alreadyStarred ? `${k} quitado de "Importantes"` : `${k} añadido a "Importantes"`)
   }
 
+  const wordsToggleBtn = kanji.words.length > 0 && (
+    <button
+      onClick={() => setHideWordDetails(v => !v)}
+      className="w-9 h-9 rounded-full flex items-center justify-center press"
+      style={{ background: '#e5e5e2', border: 'none', cursor: 'pointer' }}
+      aria-label={hideWordDetails ? 'Mostrar significados' : 'Ocultar significados'}
+    >
+      {hideWordDetails ? (
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth="1.71" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 12s3.6-6.5 9-6.5 9 6.5 9 6.5-3.6 6.5-9 6.5S3 12 3 12z"/>
+          <line x1="9.8" y1="12" x2="14.2" y2="12"/>
+          <line x1="3" y1="3" x2="21" y2="21"/>
+        </svg>
+      ) : (
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth="1.71" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 12s3.6-6.5 9-6.5 9 6.5 9 6.5-3.6 6.5-9 6.5S3 12 3 12z"/>
+          <circle cx="12" cy="12" r="2.5"/>
+        </svg>
+      )}
+    </button>
+  )
+
   return (
     <motion.div
       className="fixed inset-0 z-50 flex flex-col"
@@ -342,7 +365,7 @@ export default function Detail({
           className="w-9 h-9 rounded-full flex items-center justify-center press"
           style={{ background: '#e5e5e2' }}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ color: 'var(--text)' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" style={{ color: 'var(--text)' }}>
             <path d="M15 18l-6-6 6-6"/>
           </svg>
         </motion.button>
@@ -350,13 +373,14 @@ export default function Detail({
         {/* Right side buttons */}
         {!localUnlocked ? (
           <div className="flex items-center gap-3">
+            {wordsToggleBtn}
             {onChangeLevel && (
               <button
                 onClick={() => { setPendingLevel(displayLevel); setPendingMeanings(kanji.meanings.join(', ')); setPendingKun(kanji.kun.join('、')); setPendingOn(kanji.on.join('、')); setPendingWords(kanji.words.map(w => ({ ...w }))); setShowLevelSheet(true) }}
                 className="w-9 h-9 rounded-full flex items-center justify-center"
                 style={{ background: '#e5e5e2', border: 'none', cursor: 'pointer' }}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
                   <path d="M1 4v6h6"/>
                   <path d="M23 20v-6h-6"/>
                   <path d="M20.49 9a9 9 0 0 0-14.85-3.36L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/>
@@ -369,7 +393,7 @@ export default function Detail({
               className="w-9 h-9 rounded-full flex items-center justify-center press"
               style={{ background: '#e5e5e2' }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"
                 style={{ color: 'var(--text)' }}>
                 <path d="M12 5v14M5 12h14"/>
               </svg>
@@ -377,6 +401,7 @@ export default function Detail({
           </div>
         ) : (onRemove || onStar || onChangeLevel || onEditKanji) && (
           <div className="flex items-center gap-3">
+            {wordsToggleBtn}
             {onStar && (
               <button
                 onClick={() => { onStar(kanji.k); showSnack(isStarred ? `${kanji.k} quitado de "Importantes"` : `${kanji.k} añadido a "Importantes"`) }}
@@ -396,7 +421,7 @@ export default function Detail({
                 className="w-9 h-9 rounded-full flex items-center justify-center"
                 style={{ background: '#e5e5e2', border: 'none', cursor: 'pointer' }}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
                   <path d="M1 4v6h6"/>
                   <path d="M23 20v-6h-6"/>
                   <path d="M20.49 9a9 9 0 0 0-14.85-3.36L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/>
@@ -410,7 +435,7 @@ export default function Detail({
                 className="w-9 h-9 rounded-full flex items-center justify-center press"
                 style={{ background: '#e5e5e2' }}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
                   style={{ color: 'var(--text)' }}>
                   <path d="M18 6L6 18M6 6l12 12"/>
                 </svg>
@@ -487,7 +512,8 @@ export default function Detail({
                 {sortByLevelAndRank(kanji.words).map((w, i) => (
                   <WordRow key={i} word={w} onClick={() => setSelectedWord(w)}
                     onStar={onStarWord ? handleStarWord : undefined}
-                    starred={isStarredWord?.(w.w)} />
+                    starred={isStarredWord?.(w.w)}
+                    hideDetails={hideWordDetails} />
                 ))}
               </div>
           }

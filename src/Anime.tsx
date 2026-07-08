@@ -56,7 +56,7 @@ function pickHighlight(examples: AnimeExample[], jp: string): { sentence: string
 
 // Converts "[漢字|reading]" markup to plain hiragana reading
 function toHiragana(furigana: string): string {
-  return furigana.replace(/\[([^\|]+)\|([^\]]+)\]/g, (_, _k, r) => r)
+  return furigana.replace(/\[([^|]+)\|([^\]]+)\]/g, (_, _k, r) => r)
 }
 
 function BoldSentence({ sentence, start, len }: { sentence: string; start: number; len: number }) {
@@ -70,40 +70,6 @@ function BoldSentence({ sentence, start, len }: { sentence: string; start: numbe
   )
 }
 
-// Frequency ranking — most common in anime first, regardless of category
-const FREQ_ORDER = new Map<string, number>([
-  ['よ', 1], ['ね / ねえ', 2], ['の', 3], ['やばい', 4], ['バカ', 5],
-  ['くそ', 6], ['マジ', 7], ['うるさい', 8], ['すごい / すごっ', 9],
-  ['～てしまう / ～ちゃう', 10], ['～んだ / ～なんだ', 11], ['～なきゃ / ～なければ', 12],
-  ['～てくれ / ～てくれよ', 13], ['はあ？', 14], ['だろ', 15], ['かな', 16],
-  ['なあ', 17], ['よね', 18], ['じゃん', 19], ['かよ', 20], ['ぜ', 21], ['ぞ', 22],
-  ['～な', 23], ['さ', 24], ['絶対', 25], ['覚悟', 26], ['本気', 27], ['まさか', 28],
-  ['ひどい', 29], ['ありえない', 30], ['仕方ない', 31], ['甘い', 32], ['黙れ', 33],
-  ['任せろ', 34], ['頑張れ', 35], ['～てやる', 36], ['～わけがない', 37],
-  ['～はずだ', 38], ['～じゃないか', 39], ['～に決まっている', 40],
-  ['～べきだ / ～べきじゃない', 41], ['めっちゃ', 42], ['ガチ', 43],
-  ['だぜ', 44], ['だぞ', 45], ['だと？', 46], ['もん / もの（文末）', 47],
-  ['し', 48], ['だって', 49], ['ったら / ってば', 50], ['てめえ', 51],
-  ['うざい', 52], ['なめるな', 53], ['ちくしょう', 54], ['化け物', 55],
-  ['仲間', 56], ['最強', 57], ['全力', 58], ['ヤツ', 59], ['別に', 60],
-  ['ふざけるな', 61], ['いい加減にしろ', 62], ['気にするな', 63],
-  ['すまない / すまん', 64], ['冗談', 65], ['諦めるな', 66], ['逃げるな', 67],
-  ['ちゃんと', 68], ['嘘つき', 69], ['～ものか', 70], ['～くせに', 71],
-  ['～てみせる', 72], ['～に違いない', 73], ['～っていうか', 74], ['～ても', 75],
-  ['～なんて', 76], ['～から（文末）', 77], ['～てはいられない', 78],
-  ['～そうだ（様態）', 79], ['～やがる', 80], ['～みたいだ / ～みたいな', 81],
-  ['なんか', 82], ['わ', 83], ['かい', 84], ['や（関西弁）', 85],
-  ['やれやれ', 86], ['ふん', 87], ['野郎', 88], ['貴様', 89], ['うそだろ', 90],
-  ['余裕', 91], ['無駄', 92], ['一体', 93], ['参った', 94], ['チッ', 95],
-  ['かわいそう', 96], ['ざまあ / ざまを見ろ', 97], ['勝手にしろ', 98],
-  ['どうせ', 99], ['なんでもない', 100], ['ほっとけ / ほっといて', 101],
-  ['調子に乗るな', 102], ['邪魔するな', 103], ['～だけど（文末）', 104],
-  ['～てたまるか', 105], ['～というものだ', 106], ['～ずにはいられない', 107],
-  ['～てでも', 108], ['～ぬ（古語）', 109], ['～っけ', 110], ['～ばよかった', 111],
-  ['～わけだ', 112], ['～に過ぎない', 113], ['～ものだ（懐古）', 114],
-  ['～っぽい', 115], ['～にしても', 116],
-])
-
 // ── Anime ─────────────────────────────────────────────────────────────────
 export default function Anime() {
   const [search,    setSearch]    = useState('')
@@ -112,6 +78,7 @@ export default function Anime() {
   const listRef = useRef<HTMLDivElement>(null)
 
   const q = search.toLowerCase().trim()
+  // Display order follows ANIME_DATA's array order (most frequent in anime first).
   const items = ANIME_DATA
     .filter(e => {
       if (catFilter && e.category !== catFilter) return false
@@ -123,7 +90,6 @@ export default function Anime() {
         e.examples.some(ex => ex.jp.includes(q) || ex.es.toLowerCase().includes(q))
       )
     })
-    .sort((a, b) => (FREQ_ORDER.get(a.jp) ?? 999) - (FREQ_ORDER.get(b.jp) ?? 999))
 
   const CATS: Array<{ id: AnimeCategory | null; label: string }> = [
     { id: null,          label: 'Todos' },
